@@ -1,3 +1,21 @@
+# Copyright (c) 2019 SUSE LLC, All rights reserved.
+#
+# This file is part of obs-img-downloader. obs-img-downloader provides
+# an api and command line utilities for downloading images from OBS.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import hashlib
 import logging
 import os
@@ -10,13 +28,15 @@ from tempfile import NamedTemporaryFile
 from urllib.error import ContentTooShortError, URLError
 
 from obs_img_downloader.exceptions import (
+    ImageDownloadException,
     ImageDownloaderException,
     DownloadPackagesFileException,
     ImageConditionsException,
     PackageVersionException,
-    ImageChecksumException
+    ImageChecksumException,
+    ImageVersionException
 )
-from obs_img_downloader.utils import retry
+from obs_img_downloader.utils import defaults, retry
 from obs_img_downloader.web_content import WebContent
 
 extensions = {
@@ -81,41 +101,37 @@ class ImageDownloader(object):
             download_directory=None,
             version_format=None,
             log_level=logging.INFO,
+            log_callback=None,
             report_callback=None
     ):
-        self.logger = logging.getLogger('obs_img_downloader')
-        self.logger.setLevel(log_level)
-
-        console_handler = logging.StreamHandler()
-        console_handler.setLevel(log_level)
-        console_handler.setFormatter(logging.Formatter('%(message)s'))
-
-        self.logger.addHandler(console_handler)
+        if log_callback:
+            self.log_callback = log_callback
+        else:
+            logger = logging.getLogger('obs_img_downloader')
+            logger.setLevel(log_level)
+            self.log_callback = logger
 
         self.download_url = download_url
         self.image_name = image_name
-        self.cloud = cloud.lower()
 
-        if cloud not in ('azure', 'ec2', 'gce', 'oci'):
+        if cloud not in extensions.keys():
             raise ImageDownloaderException(
                 '{cloud} is not supported. '
                 'Valid values are azure, ec2, gce or oci'.format(
                     cloud=cloud
                 )
             )
+        else:
+            self.cloud = cloud.lower()
 
-        self.extension = extensions[cloud]
+        self.extension = extensions[self.cloud]
         self.arch = arch
         self.download_directory = os.path.expanduser(
-            os.path.join(
-                download_directory or '~/images/'
-            )
+            download_directory or defaults['download_dir']
         )
         self.image_metadata_name = None
         self.conditions = conditions
-        self.log_callback = None
-        self.version_format = \
-            version_format or '{kiwi_version}-Build{obs_build}'
+        self.version_format = version_format or defaults['version_format']
         self.version_format = self.version_format.format(
             kiwi_version=kiwi_version,
             obs_build=obs_build
@@ -144,7 +160,7 @@ class ImageDownloader(object):
     @retry((
         ContentTooShortError,
         URLError,
-        ImageDownloaderException,
+        ImageDownloadException,
         ImageChecksumException
     ))
     def _download_image(self):
@@ -171,9 +187,10 @@ class ImageDownloader(object):
         )
 
         if not image_file:
-            raise ImageDownloaderException(
-                'No images found that match {regex} at {url}'.format(
-                    regex=self.image_metadata_name,
+            raise ImageDownloadException(
+                'No {cloud} images found that match {regex} at {url}'.format(
+                    cloud=self.cloud,
+                    regex=regex,
                     url=self.download_url
                 )
             )
@@ -185,9 +202,9 @@ class ImageDownloader(object):
         )
 
         if not image_checksum:
-            raise ImageDownloaderException(
-                'No checksum found that match {regex} at {url}'.format(
-                    regex=self.image_metadata_name,
+            raise ImageChecksumException(
+                'No checksum file found that matches {regex} at {url}'.format(
+                    regex=regex,
                     url=self.download_url
                 )
             )
@@ -230,12 +247,6 @@ class ImageDownloader(object):
 
     def check_image_conditions(self):
         self._get_image_packages_metadata()
-
-        packages_digest = hashlib.md5()
-        packages_digest.update(format(self.image_status['packages']).encode())
-        packages_checksum = packages_digest.hexdigest()
-        self.image_status['packages_checksum'] = packages_checksum
-
         self._get_image_version()
 
         for condition in self.image_status['conditions']:
@@ -261,11 +272,7 @@ class ImageDownloader(object):
 
     def get_image(self):
         self.image_status['image_source'] = self._download_image()
-        self.logger.info(
-            'Downloaded: {0}'.format(
-                self.image_status['image_source']
-            )
-        )
+        return self.image_status['image_source']
 
     @retry(DownloadPackagesFileException)
     def _download_packages_file(self, packages_file_name):
@@ -278,13 +285,13 @@ class ImageDownloader(object):
             r'\.packages'
         ])
 
-        name = self.remote.fetch_file(
+        self.image_metadata_name = self.remote.fetch_file(
             self.image_name,
             regex,
             packages_file_name
         )
 
-        if not name:
+        if not self.image_metadata_name:
             raise DownloadPackagesFileException(
                 'No image metadata found matching: {regex}, '
                 'at {url}'.format(
@@ -293,8 +300,6 @@ class ImageDownloader(object):
                 )
             )
 
-        return name
-
     def _get_image_version(self):
         # Extract image version information from .packages file name
         self.image_status['version'] = self._get_build_number(
@@ -302,7 +307,7 @@ class ImageDownloader(object):
         ).kiwi_version
 
         if self.image_status['version'] == 'unknown':
-            raise DownloadPackagesFileException(
+            raise ImageVersionException(
                 'No image version found using {formatter}. '
                 'Unexpected image name format: {name}'.format(
                     formatter=self.version_format,
@@ -312,10 +317,7 @@ class ImageDownloader(object):
 
     def _get_image_packages_metadata(self):
         packages_file = NamedTemporaryFile()
-
-        self.image_metadata_name = self._download_packages_file(
-            packages_file.name
-        )
+        self._download_packages_file(packages_file.name)
 
         result_packages = {}
         with open(packages_file.name) as packages:

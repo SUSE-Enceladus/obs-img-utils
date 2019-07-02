@@ -1,3 +1,21 @@
+# Copyright (c) 2019 SUSE LLC, All rights reserved.
+#
+# This file is part of obs-img-downloader. obs-img-downloader provides
+# an api and command line utilities for downloading images from OBS.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import click
 import logging
 import os
@@ -13,8 +31,12 @@ module = sys.modules[__name__]
 
 default_config = os.path.expanduser('~/.config/obs_img_downloader/config.yaml')
 defaults = {
+    'arch': 'x86_64',
+    'cloud': 'ec2',
     'config': default_config,
     'download_dir': os.path.expanduser('~/obs_img_downloader/images'),
+    'download_url': 'https://provo-mirror.opensuse.org/repositories'
+                    '/Cloud:/Images:/Leap_15.0/images/',
     'log_level': logging.INFO,
     'no_color': False,
     'version_format': '{kiwi_version}-Build{obs_build}'
@@ -65,7 +87,7 @@ def callback(block_num, read_size, total_size, done=False):
     module.bar.update(block_num)
 
 
-def retry(exceptions, tries=4, delay=3, backoff=2, logger=None):
+def retry(exceptions, tries=4, delay=3, backoff=2):
     """
     Retry calling the decorated function using an exponential backoff.
     """
@@ -73,23 +95,22 @@ def retry(exceptions, tries=4, delay=3, backoff=2, logger=None):
 
         @wraps(f)
         def f_retry(*args, **kwargs):
-            mtries, current_delay = tries, delay
-            while mtries is None or mtries > 1:
+            mtries, mdelay = tries, delay
+            while mtries > 1:
                 try:
                     return f(*args, **kwargs)
                 except exceptions as e:
                     msg = '{}, Retrying in {} seconds...'.format(
                         e,
-                        current_delay
+                        mdelay
                     )
-                    if logger:
-                        logger.warning(msg)
-                    else:
-                        print(msg)
-                    time.sleep(mdelay)
 
-                    if mtries:
-                        mtries -= 1
+                    with suppress(Exception):
+                        log_callback = locals()['args'][0].log_callback
+                        log_callback.warning(msg)
+
+                    time.sleep(mdelay)
+                    mtries -= 1
 
                     mdelay *= backoff
             return f(*args, **kwargs)
@@ -97,3 +118,10 @@ def retry(exceptions, tries=4, delay=3, backoff=2, logger=None):
         return f_retry  # true decorator
 
     return deco_retry
+
+
+def echo_style(message, no_color, fg='green'):
+    if no_color:
+        click.echo(message)
+    else:
+        click.secho(message, fg=fg)

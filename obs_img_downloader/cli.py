@@ -1,8 +1,33 @@
+# Copyright (c) 2019 SUSE LLC, All rights reserved.
+#
+# This file is part of obs-img-downloader. obs-img-downloader provides
+# an api and command line utilities for downloading images from OBS.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import click
 import logging
+import sys
 
-from obs_img_downloader.utils import bar, get_config, callback
-from obs_img_downloader.img_downloader import ImageDownloader
+from obs_img_downloader.utils import (
+    get_config,
+    callback,
+    echo_style
+)
+from obs_img_downloader.api import ImageDownloader, extensions
+
+logger = logging.getLogger('obs_img_downloader')
 
 
 def print_license(ctx, param, value):
@@ -75,49 +100,86 @@ def main(context, config, no_color, log_level):
 @click.option(
     '--download-url',
     type=click.STRING,
-    help=''
+    help='OBS download URL.'
 )
 @click.option(
     '--download-dir',
-    type=click.STRING,
-    help=''
+    type=click.Path(exists=True),
+    help='Directory to store downloaded images and checksums.'
 )
 @click.option(
     '--image-name',
     type=click.STRING,
-    help=''
+    help='Image name from the OBS download URL.',
+    required=True
 )
 @click.option(
     '--cloud',
-    type=click.STRING,
-    help=''
+    type=click.Choice(extensions.keys()),
+    help='Cloud framework for the image to be downloaded.'
 )
 @click.option(
     '--arch',
-    type=click.STRING,
-    help=''
+    type=click.Choice(['x86_64', 'aarch64']),
+    help='Architecture of the image.'
 )
 @click.option(
     '--version-format',
     type=click.STRING,
-    help=''
+    help='Version format for image. Should contain format strings for'
+         '{kiwi_version} and {obs_build}.'
+         'Example: {kiwi_version}-Build{obs_build}.'
 )
 @click.pass_context
 def download(context, download_url, download_dir, image_name, cloud, arch, version_format):
     """
     Download image.
-    """
-    #config_data = get_config(context.obj)
 
-    d = ImageDownloader(
-        'https://provo-mirror.opensuse.org/repositories/Cloud:/Images:/Leap_15.0/images/',
-        'openSUSE-Leap-15.0-GCE',
-        'gce',
-        download_directory='/run/media/smarlow/DellHDD/mash/images',
+    If there are conditions, wait 15 minutes for conditions to be met.
+    If conditions are still not met raise exception.
+    """
+    context.obj['download_url'] = download_url
+    context.obj['download_dir'] = download_dir
+    context.obj['cloud'] = cloud
+    context.obj['arch'] = arch
+    context.obj['version_format'] = version_format
+
+    config_data = get_config(context.obj)
+
+    logger.setLevel(config_data.log_level)
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(config_data.log_level)
+    console_handler.setFormatter(logging.Formatter('%(message)s'))
+    logger.addHandler(console_handler)
+
+    downloader = ImageDownloader(
+        config_data.download_url,
+        image_name,
+        config_data.cloud,
+        arch=config_data.arch,
+        download_directory=config_data.download_dir,
+        version_format=config_data.version_format,
+        log_level=config_data.log_level,
+        log_callback=logger,
         report_callback=callback
     )
 
-    d.get_image()
+    try:
+        image_source = downloader.get_image()
+    except Exception as error:
+        if config_data.log_level == logging.DEBUG:
+            raise
+
+        echo_style(
+            "{}: {}".format(type(error).__name__, error),
+            config_data.no_color,
+            fg='red'
+        )
+        sys.exit(1)
+
+    click.echo(
+        'Image downloaded: {img_source}'.format(img_source=image_source)
+    )
 
 
 main.add_command(download)

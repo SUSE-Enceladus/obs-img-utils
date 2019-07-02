@@ -3,10 +3,10 @@
 
 """Setup script."""
 
-# Copyright (c) 2019 SUSE LLC
+# Copyright (c) 2019 SUSE LLC, All rights reserved.
 #
-# This file is part of img-downloader. img-downloader provides an api and
-# command line utilities for downloading images from OBS.
+# This file is part of obs-img-downloader. obs-img-downloader provides
+# an api and command line utilities for downloading images from OBS.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -31,29 +31,29 @@ with open('requirements.txt') as req_file:
 
 
 setup(
-    name='img-downloader',
+    name='obs-img-downloader',
     version='0.0.1',
     description="Package for downloading images from Open Build Service.",
     long_description=readme,
     long_description_content_type="text/markdown",
     author="SUSE",
     author_email='public-cloud-dev@susecloud.net',
-    url='https://github.com/SUSE-Enceladus/img-downloader',
+    url='https://github.com/SUSE-Enceladus/obs-img-downloader',
     packages=find_packages(),
     package_dir={
         'obs_img_downloader': 'obs_img_downloader'
     },
     entry_points={
         'console_scripts': [
-            'img-downloader=obs_img_downloader.cli:main'
+            'obs-img-downloader=obs_img_downloader.cli:main'
         ]
     },
     include_package_data=True,
-    python_requires='>=3.4',
+    python_requires='>=3.5',
     install_requires=requirements,
     license='GPLv3+',
     zip_safe=False,
-    keywords='img-downloader obs_img_downloader',
+    keywords='obs-img-downloader obs_img_downloader',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Environment :: Console',
