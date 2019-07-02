@@ -9,15 +9,15 @@ from pkg_resources import parse_version
 from tempfile import NamedTemporaryFile
 from urllib.error import ContentTooShortError, URLError
 
-from img_downloader.exceptions import (
+from obs_img_downloader.exceptions import (
     ImageDownloaderException,
     DownloadPackagesFileException,
     ImageConditionsException,
     PackageVersionException,
     ImageChecksumException
 )
-from img_downloader.utils import retry
-from img_downloader.web_content import WebContent
+from obs_img_downloader.utils import retry
+from obs_img_downloader.web_content import WebContent
 
 extensions = {
     'azure': r'vhdfixed\.xz',
@@ -83,7 +83,7 @@ class ImageDownloader(object):
             log_level=logging.INFO,
             report_callback=None
     ):
-        self.logger = logging.getLogger('img_downloader')
+        self.logger = logging.getLogger('obs_img_downloader')
         self.logger.setLevel(log_level)
 
         console_handler = logging.StreamHandler()

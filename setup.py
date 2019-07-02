@@ -41,11 +41,11 @@ setup(
     url='https://github.com/SUSE-Enceladus/img-downloader',
     packages=find_packages(),
     package_dir={
-        'img_downloader': 'img_downloader'
+        'obs_img_downloader': 'obs_img_downloader'
     },
     entry_points={
         'console_scripts': [
-            'img-downloader=img_downloader.cli:main'
+            'img-downloader=obs_img_downloader.cli:main'
         ]
     },
     include_package_data=True,
@@ -53,7 +53,7 @@ setup(
     install_requires=requirements,
     license='GPLv3+',
     zip_safe=False,
-    keywords='img-downloader img_downloader',
+    keywords='img-downloader obs_img_downloader',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Environment :: Console',

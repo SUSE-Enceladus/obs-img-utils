@@ -11,10 +11,10 @@ from functools import wraps
 
 module = sys.modules[__name__]
 
-default_config = os.path.expanduser('~/.config/img_downloader/config.yaml')
+default_config = os.path.expanduser('~/.config/obs_img_downloader/config.yaml')
 defaults = {
     'config': default_config,
-    'download_dir': os.path.expanduser('~/img_downloader/images'),
+    'download_dir': os.path.expanduser('~/obs_img_downloader/images'),
     'log_level': logging.INFO,
     'no_color': False,
     'version_format': '{kiwi_version}-Build{obs_build}'

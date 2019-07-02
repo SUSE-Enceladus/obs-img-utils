@@ -1,8 +1,8 @@
 import click
 import logging
 
-from img_downloader.utils import bar, get_config, callback
-from img_downloader.img_downloader import ImageDownloader
+from obs_img_downloader.utils import bar, get_config, callback
+from obs_img_downloader.img_downloader import ImageDownloader
 
 
 def print_license(ctx, param, value):
@@ -32,7 +32,7 @@ def abort_if_false(ctx, param, value):
     '--config',
     type=click.Path(exists=True),
     help='Image Downloader config file to use. Default: '
-         '~/.config/img_downloader/config'
+         '~/.config/obs_img_downloader/config'
 )
 @click.option(
     '--no-color',
