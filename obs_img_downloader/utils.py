@@ -39,7 +39,8 @@ defaults = {
                     '/Cloud:/Images:/Leap_15.0/images/',
     'log_level': logging.INFO,
     'no_color': False,
-    'version_format': '{kiwi_version}-Build{obs_build}'
+    'version_format': '{kiwi_version}-Build{obs_build}',
+    'conditions_wait_time': 0
 }
 
 img_downloader_config = namedtuple(

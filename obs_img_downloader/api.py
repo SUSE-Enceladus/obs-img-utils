@@ -20,6 +20,7 @@ import hashlib
 import logging
 import os
 import re
+import time
 
 from collections import namedtuple
 from distutils.dir_util import mkpath
@@ -76,6 +77,7 @@ class ImageDownloader(object):
         download_directory=None,
         version_format=None,
         log_level=logging.INFO,
+        conditions_wait_time=0,
         log_callback=None,
         report_callback=None
     ):
@@ -88,6 +90,7 @@ class ImageDownloader(object):
 
         self.download_url = download_url
         self.image_name = image_name
+        self.conditions_wait_time = conditions_wait_time
         self.cloud = cloud.lower()
 
         if self.cloud not in extensions.keys():
@@ -104,6 +107,7 @@ class ImageDownloader(object):
             download_directory or defaults['download_dir']
         )
         self.image_metadata_name = None
+        self.image_checksum = None
         self.conditions = conditions
         self.version_format = version_format or defaults['version_format']
         self.version_format = self.version_format.format(
@@ -174,10 +178,30 @@ class ImageDownloader(object):
                 )
             )
 
+        expected_checksum = self._get_image_checksum(
+            regex.replace('$', r'\.sha256$')
+        )
+
+        image_hash = hashlib.sha256()
+        with open(image_file, 'rb') as f:
+            for byte_block in iter(lambda: f.read(4096), b''):
+                image_hash.update(byte_block)
+
+        if image_hash.hexdigest() != expected_checksum:
+            raise ImageChecksumException(
+                'Image checksum does not match expected value'
+            )
+
+        self.image_checksum = expected_checksum
+
+        return image_file
+
+    def _get_image_checksum(self, regex):
         self.log_callback.debug('Fetching image checksum')
+
         image_checksum = self.remote.fetch_to_dir(
             self.image_name,
-            regex.replace('$', r'\.sha256$'),
+            regex,
             self.download_directory
         )
 
@@ -189,21 +213,11 @@ class ImageDownloader(object):
                 )
             )
 
-        image_hash = hashlib.sha256()
-        with open(image_file, 'rb') as f:
-            for byte_block in iter(lambda: f.read(4096), b''):
-                image_hash.update(byte_block)
-
         with open(image_checksum, 'r') as f:
             lines = f.readlines()
             expected_checksum = lines[3].strip()
 
-        if image_hash.hexdigest() != expected_checksum:
-            raise ImageChecksumException(
-                'Image checksum does not match expected value'
-            )
-
-        return image_file
+        return expected_checksum
 
     def _get_build_number(self, name):
         build = re.search(self.version_format, name)
@@ -253,9 +267,51 @@ class ImageDownloader(object):
         if not self._image_conditions_complied():
             raise ImageConditionsException('Image conditions not met')
 
-    @retry(ImageConditionsException, tries=3, delay=3, backoff=1)
     def _wait_on_image_conditions(self):
-        self.check_image_conditions()
+        start = time.time()
+        end = start + self.conditions_wait_time
+
+        while True:
+            try:
+                self.check_image_conditions()
+                break
+            except ImageConditionsException as error:
+                if time.time() < end:
+                    self.log_callback.warning(
+                        '{error}, retrying in 150 seconds...'.format(
+                            error=error
+                        )
+                    )
+                    time.sleep(150)
+                else:
+                    raise
+
+    @retry((
+        ContentTooShortError,
+        URLError,
+        ImageChecksumException
+    ))
+    def wait_for_new_image(self):
+        self.log_callback.debug('Waiting for new image')
+
+        while True:
+            regex = r''.join([
+                r'^',
+                self.image_name,
+                r'\.',
+                self.arch,
+                '-',
+                self.version_format,
+                r'\.',
+                self.extension,
+                r'\.sha256$'
+            ])
+
+            latest_checksum = self._get_image_checksum(regex)
+            if self.image_checksum != latest_checksum:
+                return
+
+            time.sleep(60)
 
     def get_image(self):
         self.image_status['image_source'] = self._download_image()

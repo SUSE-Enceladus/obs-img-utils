@@ -143,6 +143,13 @@ def main(context, config, no_color, log_level):
     help='Invoke conditions process to specify conditions '
          'for image'
 )
+@click.option(
+    '--conditions-wait-time',
+    is_flag=True,
+    help='Time (in seconds) to wait for conditions '
+         'to be met. Retry period is 150 seconds and'
+         ' default is 0 seconds for no wait.'
+)
 @click.pass_context
 def download(
     context,
@@ -152,19 +159,18 @@ def download(
     cloud,
     arch,
     version_format,
-    conditions
+    conditions,
+    conditions_wait_time
 ):
     """
-    Download image.
-
-    If there are conditions, wait 15 minutes for conditions to be met.
-    If conditions are still not met raise exception.
+    Download image from Open Build Service at `download_url`.
     """
     context.obj['download_url'] = download_url
     context.obj['download_dir'] = download_dir
     context.obj['cloud'] = cloud
     context.obj['arch'] = arch
     context.obj['version_format'] = version_format
+    context.obj['conditions_wait_time'] = conditions_wait_time
 
     config_data = get_config(context.obj)
 
