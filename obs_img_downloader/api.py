@@ -64,45 +64,20 @@ build_version = namedtuple(
 
 class ImageDownloader(object):
     """
-        Implements image downloader.
-
-        Attributes
-        * :attr:`download_url`
-          Buildservice URL
-        * :attr:`image_name`
-          Image name as specified in the KIWI XML description of the
-          Buildservice project and package
-        * :attr:`conditions`
-          Criteria for the image build which is a list of hashes like
-          the following example demonstrates:
-          conditions=[
-              # a package condition with version and release spec
-              {
-               'package_name': 'kernel-default',
-               'version': '4.13.1',
-               'build_id': '1.1'
-              },
-              # a image version condition
-              {'image': '1.42.1'}
-          ]
-        * :attr:`arch`
-          Buildservice package architecture, defaults to: x86_64
-        * :attr:`download_directory`
-          Download directory name, defaults to: /tmp
-        """
-
+    Implements image downloader.
+    """
     def __init__(
-            self,
-            download_url,
-            image_name,
-            cloud,
-            conditions=None,
-            arch='x86_64',
-            download_directory=None,
-            version_format=None,
-            log_level=logging.INFO,
-            log_callback=None,
-            report_callback=None
+        self,
+        download_url,
+        image_name,
+        cloud,
+        conditions=None,
+        arch='x86_64',
+        download_directory=None,
+        version_format=None,
+        log_level=logging.INFO,
+        log_callback=None,
+        report_callback=None
     ):
         if log_callback:
             self.log_callback = log_callback
@@ -113,16 +88,15 @@ class ImageDownloader(object):
 
         self.download_url = download_url
         self.image_name = image_name
+        self.cloud = cloud.lower()
 
-        if cloud not in extensions.keys():
+        if self.cloud not in extensions.keys():
             raise ImageDownloaderException(
                 '{cloud} is not supported. '
                 'Valid values are azure, ec2, gce or oci'.format(
-                    cloud=cloud
+                    cloud=self.cloud
                 )
             )
-        else:
-            self.cloud = cloud.lower()
 
         self.extension = extensions[self.cloud]
         self.arch = arch
@@ -147,7 +121,6 @@ class ImageDownloader(object):
             'job_status': 'prepared',
             'image_source': ['unknown'],
             'packages': {},
-            'packages_checksum': 'unknown',
             'version': 'unknown',
             'conditions': []
         }
@@ -179,6 +152,12 @@ class ImageDownloader(object):
             r'$'
         ])
 
+        self.log_callback.debug(
+            'Fetching image {regex} from {url}'.format(
+                regex=regex,
+                url=self.download_url
+            )
+        )
         image_file = self.remote.fetch_to_dir(
             self.image_name,
             regex,
@@ -195,6 +174,7 @@ class ImageDownloader(object):
                 )
             )
 
+        self.log_callback.debug('Fetching image checksum')
         image_checksum = self.remote.fetch_to_dir(
             self.image_name,
             regex.replace('$', r'\.sha256$'),
@@ -254,6 +234,13 @@ class ImageDownloader(object):
                 if self.image_status['version'] == condition['image']:
                     condition['status'] = True
                 else:
+                    self.log_callback.info(
+                        'Image version condition failed: '
+                        ' {cur_version} == {exp_version}'.format(
+                            cur_version=self.image_status['version'],
+                            exp_version=condition['image']
+                        )
+                    )
                     condition['status'] = False
             elif 'package_name' in condition:
                 if self._lookup_package(
@@ -266,7 +253,7 @@ class ImageDownloader(object):
         if not self._image_conditions_complied():
             raise ImageConditionsException('Image conditions not met')
 
-    @retry(ImageConditionsException, tries=3, delay=300, backoff=1)
+    @retry(ImageConditionsException, tries=3, delay=3, backoff=1)
     def _wait_on_image_conditions(self):
         self.check_image_conditions()
 
@@ -285,6 +272,12 @@ class ImageDownloader(object):
             r'\.packages'
         ])
 
+        self.log_callback.debug(
+            'Fetching packages file {regex} from {url}'.format(
+                regex=regex,
+                url=self.download_url
+            )
+        )
         self.image_metadata_name = self.remote.fetch_file(
             self.image_name,
             regex,
@@ -314,6 +307,12 @@ class ImageDownloader(object):
                     name=self.image_metadata_name
                 )
             )
+
+        self.log_callback.debug(
+            'Image version is {version}'.format(
+                version=self.image_status['version']
+            )
+        )
 
     def _get_image_packages_metadata(self):
         packages_file = NamedTemporaryFile()
@@ -370,6 +369,15 @@ class ImageDownloader(object):
             )
 
             if not match:
+                self.log_callback.info(
+                    'Package version condition failed: '
+                    ' {name} {cur_version} {exp} {exp_version}'.format(
+                        name=package_name,
+                        cur_version=package_data.version,
+                        exp=condition_eval,
+                        exp_version=condition['version']
+                    )
+                )
                 return False
 
         if 'build_id' in condition:
@@ -381,6 +389,15 @@ class ImageDownloader(object):
             )
 
             if not match:
+                self.log_callback.info(
+                    'Package build_id condition failed: '
+                    ' {name} {cur_version} {exp} {exp_version}'.format(
+                        name=package_name,
+                        cur_version=package_data.release,
+                        exp=condition_eval,
+                        exp_version=condition['build_id']
+                    )
+                )
                 return False
 
         return True

@@ -72,7 +72,7 @@ def get_config(cli_context):
     return img_downloader_config(**data)
 
 
-def callback(block_num, read_size, total_size, done=False):
+def click_progress_callback(block_num, read_size, total_size, done=False):
     if done:
         module.bar.render_finish()
         module.bar = None
@@ -89,7 +89,7 @@ def callback(block_num, read_size, total_size, done=False):
 
 def retry(exceptions, tries=4, delay=3, backoff=2):
     """
-    Retry calling the decorated function using an exponential backoff.
+    Retry calling the decorated instance method using an exponential backoff.
     """
     def deco_retry(f):
 
@@ -106,6 +106,7 @@ def retry(exceptions, tries=4, delay=3, backoff=2):
                     )
 
                     with suppress(Exception):
+                        # 'Self' is always first arg for instance method
                         log_callback = locals()['args'][0].log_callback
                         log_callback.warning(msg)
 
@@ -125,3 +126,60 @@ def echo_style(message, no_color, fg='green'):
         click.echo(message)
     else:
         click.secho(message, fg=fg)
+
+
+def conditions_repl():
+    image_conditions = []
+    while True:
+        if click.confirm('Add an image condition?'):
+            condition_type = click.prompt(
+                'Enter the condition type',
+                type=click.Choice(['image', 'package'])
+            )
+
+            if condition_type == 'image':
+                image_version = click.prompt(
+                    'Enter the image version condition',
+                    type=str
+                )
+
+                image_conditions.append({'image': image_version})
+            else:
+                package_name = click.prompt(
+                    'Enter the package name',
+                    type=str
+                )
+
+                condition_exp = click.prompt(
+                    'Enter the condition expression',
+                    type=click.Choice(['>=', '<=', '==', '>', '<']),
+                    default='>='
+                )
+
+                version = click.prompt(
+                    'Enter the version (optional)',
+                    type=str,
+                    default=''
+                )
+
+                build_id = click.prompt(
+                    'Enter the build id (optional)',
+                    type=str,
+                    default=''
+                )
+
+                condition = {
+                    'package_name': package_name,
+                    'condition': condition_exp,
+                }
+
+                if version:
+                    condition['version'] = version
+                elif build_id:
+                    condition['build_id'] = build_id
+
+                image_conditions.append(condition)
+        else:
+            break
+
+    return image_conditions

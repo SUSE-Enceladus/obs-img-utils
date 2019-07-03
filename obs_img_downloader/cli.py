@@ -22,8 +22,9 @@ import sys
 
 from obs_img_downloader.utils import (
     get_config,
-    callback,
-    echo_style
+    click_progress_callback,
+    echo_style,
+    conditions_repl
 )
 from obs_img_downloader.api import ImageDownloader, extensions
 
@@ -57,7 +58,7 @@ def abort_if_false(ctx, param, value):
     '--config',
     type=click.Path(exists=True),
     help='Image Downloader config file to use. Default: '
-         '~/.config/obs_img_downloader/config'
+         '~/.config/obs_img_downloader/config.yaml'
 )
 @click.option(
     '--no-color',
@@ -90,6 +91,12 @@ def main(context, config, no_color, log_level):
     """
     if context.obj is None:
         context.obj = {}
+
+    logger.setLevel(log_level)
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(log_level)
+    console_handler.setFormatter(logging.Formatter('%(message)s'))
+    logger.addHandler(console_handler)
 
     context.obj['config'] = config
     context.obj['no_color'] = no_color
@@ -127,11 +134,26 @@ def main(context, config, no_color, log_level):
     '--version-format',
     type=click.STRING,
     help='Version format for image. Should contain format strings for'
-         '{kiwi_version} and {obs_build}.'
-         'Example: {kiwi_version}-Build{obs_build}.'
+         ' {kiwi_version} and {obs_build}.'
+         ' Example: "{kiwi_version}-Build{obs_build}".'
+)
+@click.option(
+    '--conditions',
+    is_flag=True,
+    help='Invoke conditions process to specify conditions '
+         'for image'
 )
 @click.pass_context
-def download(context, download_url, download_dir, image_name, cloud, arch, version_format):
+def download(
+    context,
+    download_url,
+    download_dir,
+    image_name,
+    cloud,
+    arch,
+    version_format,
+    conditions
+):
     """
     Download image.
 
@@ -146,25 +168,23 @@ def download(context, download_url, download_dir, image_name, cloud, arch, versi
 
     config_data = get_config(context.obj)
 
-    logger.setLevel(config_data.log_level)
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(config_data.log_level)
-    console_handler.setFormatter(logging.Formatter('%(message)s'))
-    logger.addHandler(console_handler)
-
-    downloader = ImageDownloader(
-        config_data.download_url,
-        image_name,
-        config_data.cloud,
-        arch=config_data.arch,
-        download_directory=config_data.download_dir,
-        version_format=config_data.version_format,
-        log_level=config_data.log_level,
-        log_callback=logger,
-        report_callback=callback
-    )
+    image_conditions = []
+    if conditions:
+        image_conditions = conditions_repl()
 
     try:
+        downloader = ImageDownloader(
+            config_data.download_url,
+            image_name,
+            config_data.cloud,
+            conditions=image_conditions,
+            arch=config_data.arch,
+            download_directory=config_data.download_dir,
+            version_format=config_data.version_format,
+            log_level=config_data.log_level,
+            log_callback=logger,
+            report_callback=click_progress_callback
+        )
         image_source = downloader.get_image()
     except Exception as error:
         if config_data.log_level == logging.DEBUG:
