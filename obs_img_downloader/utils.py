@@ -17,6 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import click
+import json
 import logging
 import os
 import sys
@@ -24,7 +25,7 @@ import time
 import yaml
 
 from collections import ChainMap, namedtuple
-from contextlib import suppress
+from contextlib import contextmanager, suppress
 from functools import wraps
 
 module = sys.modules[__name__]
@@ -37,6 +38,7 @@ defaults = {
     'download_dir': os.path.expanduser('~/obs_img_downloader/images'),
     'download_url': 'https://provo-mirror.opensuse.org/repositories'
                     '/Cloud:/Images:/Leap_15.0/images/',
+    'image_name': None,
     'log_level': logging.INFO,
     'no_color': False,
     'version_format': '{kiwi_version}-Build{obs_build}',
@@ -184,3 +186,71 @@ def conditions_repl():
             break
 
     return image_conditions
+
+
+@contextmanager
+def handle_errors(log_level, no_color):
+    """
+    Context manager to handle exceptions and echo error msg.
+    """
+    try:
+        yield
+    except Exception as error:
+        if log_level == logging.DEBUG:
+            raise
+
+        echo_style(
+            "{}: {}".format(type(error).__name__, error),
+            no_color,
+            fg='red'
+        )
+        sys.exit(1)
+
+
+def style_string(message, no_color, fg='yellow'):
+    """
+    Add color style to string if no_color is False.
+    """
+    if no_color:
+        return message
+    else:
+        return click.style(message, fg=fg)
+
+
+def echo_package(name, data, no_color):
+    """
+    Echoes package info to terminal based on name.
+    """
+    try:
+        package_info = data[name]
+    except KeyError:
+        echo_style(
+            'Package with name: {name}, not in image.'.format(name=name),
+            no_color,
+            fg='red'
+        )
+    else:
+        click.echo(
+            style_string(
+                json.dumps(package_info._asdict(), indent=2),
+                no_color,
+                fg='green'
+            )
+        )
+
+
+def echo_packages(data, no_color):
+    """
+    Echoes list of package info to terminal.
+    """
+    packages = {}
+    for name, info in data.items():
+        packages[name] = info._asdict()
+
+    click.echo(
+        style_string(
+            json.dumps(packages, indent=2),
+            no_color,
+            fg='green'
+        )
+    )

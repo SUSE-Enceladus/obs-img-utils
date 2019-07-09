@@ -18,13 +18,14 @@
 
 import click
 import logging
-import sys
 
 from obs_img_downloader.utils import (
     get_config,
     click_progress_callback,
-    echo_style,
-    conditions_repl
+    conditions_repl,
+    handle_errors,
+    echo_package,
+    echo_packages
 )
 from obs_img_downloader.api import ImageDownloader, extensions
 
@@ -84,26 +85,6 @@ def abort_if_false(ctx, param, value):
     flag_value=logging.WARNING,
     help='Disable console output.'
 )
-@click.pass_context
-def main(context, config, no_color, log_level):
-    """
-    The command line interface allows you to download and check OBS images.
-    """
-    if context.obj is None:
-        context.obj = {}
-
-    logger.setLevel(log_level)
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(log_level)
-    console_handler.setFormatter(logging.Formatter('%(message)s'))
-    logger.addHandler(console_handler)
-
-    context.obj['config'] = config
-    context.obj['no_color'] = no_color
-    context.obj['log_level'] = log_level
-
-
-@click.command()
 @click.option(
     '--download-url',
     type=click.STRING,
@@ -137,6 +118,43 @@ def main(context, config, no_color, log_level):
          ' {kiwi_version} and {obs_build}.'
          ' Example: "{kiwi_version}-Build{obs_build}".'
 )
+@click.pass_context
+def main(
+    context,
+    config,
+    no_color,
+    log_level,
+    download_url,
+    download_dir,
+    image_name,
+    cloud,
+    arch,
+    version_format,
+):
+    """
+    The command line interface allows you to download and check OBS images.
+    """
+    if context.obj is None:
+        context.obj = {}
+
+    logger.setLevel(log_level)
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(log_level)
+    console_handler.setFormatter(logging.Formatter('%(message)s'))
+    logger.addHandler(console_handler)
+
+    context.obj['config'] = config
+    context.obj['no_color'] = no_color
+    context.obj['log_level'] = log_level
+    context.obj['download_url'] = download_url
+    context.obj['download_dir'] = download_dir
+    context.obj['cloud'] = cloud
+    context.obj['arch'] = arch
+    context.obj['version_format'] = version_format
+    context.obj['image_name'] = image_name
+
+
+@click.command()
 @click.option(
     '--conditions',
     is_flag=True,
@@ -151,25 +169,10 @@ def main(context, config, no_color, log_level):
          ' default is 0 seconds for no wait.'
 )
 @click.pass_context
-def download(
-    context,
-    download_url,
-    download_dir,
-    image_name,
-    cloud,
-    arch,
-    version_format,
-    conditions,
-    conditions_wait_time
-):
+def download(context, conditions, conditions_wait_time):
     """
     Download image from Open Build Service at `download_url`.
     """
-    context.obj['download_url'] = download_url
-    context.obj['download_dir'] = download_dir
-    context.obj['cloud'] = cloud
-    context.obj['arch'] = arch
-    context.obj['version_format'] = version_format
     context.obj['conditions_wait_time'] = conditions_wait_time
 
     config_data = get_config(context.obj)
@@ -178,10 +181,10 @@ def download(
     if conditions:
         image_conditions = conditions_repl()
 
-    try:
+    with handle_errors(config_data.log_level, config_data.no_color):
         downloader = ImageDownloader(
             config_data.download_url,
-            image_name,
+            context.obj['image_name'],
             config_data.cloud,
             conditions=image_conditions,
             arch=config_data.arch,
@@ -192,20 +195,81 @@ def download(
             report_callback=click_progress_callback
         )
         image_source = downloader.get_image()
-    except Exception as error:
-        if config_data.log_level == logging.DEBUG:
-            raise
-
-        echo_style(
-            "{}: {}".format(type(error).__name__, error),
-            config_data.no_color,
-            fg='red'
-        )
-        sys.exit(1)
 
     click.echo(
         'Image downloaded: {img_source}'.format(img_source=image_source)
     )
 
 
+@click.group()
+def packages():
+    """
+    Handle package requests.
+    """
+
+
+@click.command(name='list')
+@click.pass_context
+def list_packages(context):
+    """
+    Return a list of packages for the given image.
+    """
+    config_data = get_config(context.obj)
+
+    with handle_errors(config_data.log_level, config_data.no_color):
+        downloader = ImageDownloader(
+            config_data.download_url,
+            config_data.image_name,
+            config_data.cloud,
+            arch=config_data.arch,
+            download_directory=config_data.download_dir,
+            version_format=config_data.version_format,
+            log_level=config_data.log_level,
+            log_callback=logger
+        )
+        packages_metadata = downloader.get_image_packages_metadata()
+
+    echo_packages(
+        packages_metadata,
+        no_color=config_data.no_color
+    )
+
+
+@click.command()
+@click.option(
+    '--package-name',
+    type=click.STRING,
+    required=True,
+    help='Name of the package.'
+)
+@click.pass_context
+def show(context, package_name):
+    """
+    Return information for the provided package name.
+    """
+    config_data = get_config(context.obj)
+
+    with handle_errors(config_data.log_level, config_data.no_color):
+        downloader = ImageDownloader(
+            config_data.download_url,
+            config_data.image_name,
+            config_data.cloud,
+            arch=config_data.arch,
+            download_directory=config_data.download_dir,
+            version_format=config_data.version_format,
+            log_level=config_data.log_level,
+            log_callback=logger
+        )
+        packages_metadata = downloader.get_image_packages_metadata()
+
+    echo_package(
+        package_name,
+        packages_metadata,
+        no_color=config_data.no_color
+    )
+
+
 main.add_command(download)
+packages.add_command(list_packages)
+packages.add_command(show)
+main.add_command(packages)

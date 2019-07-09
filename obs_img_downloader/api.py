@@ -47,8 +47,7 @@ extensions = {
     'oci': r'qcow2'
 }
 
-kiwi_version = r'(\d+\.\d+\.\d+)'
-obs_build = r'(\d+\.\d+)'
+version_match = r'(.*)'
 
 package_type = namedtuple(
     'package_type', [
@@ -111,9 +110,18 @@ class ImageDownloader(object):
         self.conditions = conditions
         self.version_format = version_format or defaults['version_format']
         self.version_format = self.version_format.format(
-            kiwi_version=kiwi_version,
-            obs_build=obs_build
+            kiwi_version=version_match,
+            obs_build=version_match
         )
+
+        self.base_regex = r''.join([
+            r'^',
+            self.image_name,
+            r'\.',
+            self.arch,
+            '-',
+            self.version_format
+        ])
 
         self.remote = WebContent(self.download_url)
         self.report_callback = report_callback
@@ -193,8 +201,7 @@ class ImageDownloader(object):
             )
 
         self.image_checksum = expected_checksum
-
-        return image_file
+        self.image_status['image_source'] = image_file
 
     def _get_image_checksum(self, regex):
         self.log_callback.debug('Fetching image checksum')
@@ -220,7 +227,11 @@ class ImageDownloader(object):
         return expected_checksum
 
     def _get_build_number(self, name):
-        build = re.search(self.version_format, name)
+        regex = r''.join([
+            self.base_regex,
+            r'\.packages$'
+        ])
+        build = re.search(regex, name)
 
         if build:
             return build_version(
@@ -240,8 +251,8 @@ class ImageDownloader(object):
         return True
 
     def check_image_conditions(self):
-        self._get_image_packages_metadata()
-        self._get_image_version()
+        self.image_status['packages'] = self.get_image_packages_metadata()
+        self.image_status['version'] = self._get_image_version()
 
         for condition in self.image_status['conditions']:
             if 'image' in condition:
@@ -296,12 +307,7 @@ class ImageDownloader(object):
 
         while True:
             regex = r''.join([
-                r'^',
-                self.image_name,
-                r'\.',
-                self.arch,
-                '-',
-                self.version_format,
+                self.base_regex,
                 r'\.',
                 self.extension,
                 r'\.sha256$'
@@ -314,18 +320,14 @@ class ImageDownloader(object):
             time.sleep(60)
 
     def get_image(self):
-        self.image_status['image_source'] = self._download_image()
+        self._download_image()
         return self.image_status['image_source']
 
     @retry(DownloadPackagesFileException)
     def _download_packages_file(self, packages_file_name):
         regex = r''.join([
-            self.image_name,
-            r'\.',
-            self.arch,
-            '-',
-            self.version_format,
-            r'\.packages'
+            self.base_regex,
+            r'\.packages$'
         ])
 
         self.log_callback.debug(
@@ -351,11 +353,11 @@ class ImageDownloader(object):
 
     def _get_image_version(self):
         # Extract image version information from .packages file name
-        self.image_status['version'] = self._get_build_number(
+        version = self._get_build_number(
             self.image_metadata_name
         ).kiwi_version
 
-        if self.image_status['version'] == 'unknown':
+        if version == 'unknown':
             raise ImageVersionException(
                 'No image version found using {formatter}. '
                 'Unexpected image name format: {name}'.format(
@@ -366,11 +368,13 @@ class ImageDownloader(object):
 
         self.log_callback.debug(
             'Image version is {version}'.format(
-                version=self.image_status['version']
+                version=version
             )
         )
 
-    def _get_image_packages_metadata(self):
+        return version
+
+    def get_image_packages_metadata(self):
         packages_file = NamedTemporaryFile()
         self._download_packages_file(packages_file.name)
 
@@ -389,7 +393,7 @@ class ImageDownloader(object):
                 )
                 result_packages[package_name] = package_result
 
-        self.image_status['packages'] = result_packages
+        return result_packages
 
     def _version_compare(self, current, expected, condition):
         if condition == '>=':
