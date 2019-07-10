@@ -132,7 +132,10 @@ def abort_if_false(ctx, param, value):
 @click.pass_context
 def main(context):
     """
-    The command line interface allows you to download and check OBS images.
+    The command line interface provides obs image utilities.
+
+    This includes downloading images, checking packages in images
+    and getting package version information.
     """
     if context.obj is None:
         context.obj = {}

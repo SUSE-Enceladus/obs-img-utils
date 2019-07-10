@@ -17,6 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import click
+import hashlib
 import json
 import logging
 import os
@@ -76,7 +77,7 @@ def get_config(cli_context):
 
 
 def click_progress_callback(block_num, read_size, total_size, done=False):
-    if done:
+    if done and module.bar:
         module.bar.render_finish()
         module.bar = None
         return
@@ -275,3 +276,20 @@ def process_shared_options(context_obj, kwargs):
     context_obj['arch'] = kwargs['arch']
     context_obj['version_format'] = kwargs['version_format']
     context_obj['image_name'] = kwargs['image_name']
+
+
+def get_hash_from_image(image_file):
+    image_hash = hashlib.sha256()
+    with open(image_file, 'rb') as f:
+        for byte_block in iter(lambda: f.read(4096), b''):
+            image_hash.update(byte_block)
+
+    return image_hash
+
+
+def get_checksum_from_file(checksum_file):
+    with open(checksum_file, 'r') as f:
+        lines = f.readlines()
+        expected_checksum = lines[3].strip()
+
+    return expected_checksum

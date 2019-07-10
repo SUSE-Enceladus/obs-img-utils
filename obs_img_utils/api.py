@@ -37,7 +37,12 @@ from obs_img_utils.exceptions import (
     ImageChecksumException,
     ImageVersionException
 )
-from obs_img_utils.utils import defaults, retry
+from obs_img_utils.utils import (
+    defaults,
+    retry,
+    get_hash_from_image,
+    get_checksum_from_file
+)
 from obs_img_utils.web_content import WebContent
 
 extensions = {
@@ -190,10 +195,7 @@ class ImageDownloader(object):
             regex.replace('$', r'\.sha256$')
         )
 
-        image_hash = hashlib.sha256()
-        with open(image_file, 'rb') as f:
-            for byte_block in iter(lambda: f.read(4096), b''):
-                image_hash.update(byte_block)
+        image_hash = get_hash_from_image(image_file)
 
         if image_hash.hexdigest() != expected_checksum:
             raise ImageChecksumException(
@@ -220,10 +222,7 @@ class ImageDownloader(object):
                 )
             )
 
-        with open(image_checksum, 'r') as f:
-            lines = f.readlines()
-            expected_checksum = lines[3].strip()
-
+        expected_checksum = get_checksum_from_file(image_checksum)
         return expected_checksum
 
     def _get_build_number(self, name):
