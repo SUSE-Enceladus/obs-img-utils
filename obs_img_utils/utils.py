@@ -30,12 +30,12 @@ from functools import wraps
 
 module = sys.modules[__name__]
 
-default_config = os.path.expanduser('~/.config/obs_img_downloader/config.yaml')
+default_config = os.path.expanduser('~/.config/obs_img_utils/config.yaml')
 defaults = {
     'arch': 'x86_64',
     'cloud': 'ec2',
     'config': default_config,
-    'download_dir': os.path.expanduser('~/obs_img_downloader/images'),
+    'download_dir': os.path.expanduser('~/obs_img_utils/images'),
     'download_url': 'https://provo-mirror.opensuse.org/repositories'
                     '/Cloud:/Images:/Leap_15.0/images/',
     'image_name': None,
@@ -165,8 +165,8 @@ def conditions_repl():
                     default=''
                 )
 
-                build_id = click.prompt(
-                    'Enter the build id (optional)',
+                release = click.prompt(
+                    'Enter the release (optional)',
                     type=str,
                     default=''
                 )
@@ -178,8 +178,8 @@ def conditions_repl():
 
                 if version:
                     condition['version'] = version
-                elif build_id:
-                    condition['build_id'] = build_id
+                elif release:
+                    condition['release'] = release
 
                 image_conditions.append(condition)
         else:
@@ -254,3 +254,24 @@ def echo_packages(data, no_color):
             fg='green'
         )
     )
+
+
+def get_logger(log_level):
+    logger = logging.getLogger('obs_img_utils')
+    logger.setLevel(log_level)
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(log_level)
+    console_handler.setFormatter(logging.Formatter('%(message)s'))
+    logger.addHandler(console_handler)
+
+
+def process_shared_options(context_obj, kwargs):
+    context_obj['config'] = kwargs['config']
+    context_obj['no_color'] = kwargs['no_color']
+    context_obj['log_level'] = kwargs['log_level']
+    context_obj['download_url'] = kwargs['download_url']
+    context_obj['download_dir'] = kwargs['download_dir']
+    context_obj['cloud'] = kwargs['cloud']
+    context_obj['arch'] = kwargs['arch']
+    context_obj['version_format'] = kwargs['version_format']
+    context_obj['image_name'] = kwargs['image_name']

@@ -28,7 +28,7 @@ from pkg_resources import parse_version
 from tempfile import NamedTemporaryFile
 from urllib.error import ContentTooShortError, URLError
 
-from obs_img_downloader.exceptions import (
+from obs_img_utils.exceptions import (
     ImageDownloadException,
     ImageDownloaderException,
     DownloadPackagesFileException,
@@ -37,8 +37,8 @@ from obs_img_downloader.exceptions import (
     ImageChecksumException,
     ImageVersionException
 )
-from obs_img_downloader.utils import defaults, retry
-from obs_img_downloader.web_content import WebContent
+from obs_img_utils.utils import defaults, retry
+from obs_img_utils.web_content import WebContent
 
 extensions = {
     'azure': r'vhdfixed\.xz',
@@ -83,7 +83,7 @@ class ImageDownloader(object):
         if log_callback:
             self.log_callback = log_callback
         else:
-            logger = logging.getLogger('obs_img_downloader')
+            logger = logging.getLogger('obs_img_utils')
             logger.setLevel(log_level)
             self.log_callback = logger
 
@@ -415,6 +415,9 @@ class ImageDownloader(object):
         package_name = condition['package_name']
 
         if package_name not in packages:
+            self.log_callback.info(
+                'Package {name} not in image'.format(name=package_name)
+            )
             return False
 
         condition_eval = condition.get('condition', '>=')
@@ -440,22 +443,22 @@ class ImageDownloader(object):
                 )
                 return False
 
-        if 'build_id' in condition:
-            # we want to lookup a specific build number
+        if 'release' in condition:
+            # we want to lookup a specific release number
             match = self._version_compare(
                 package_data.release,
-                condition['build_id'],
+                condition['release'],
                 condition_eval
             )
 
             if not match:
                 self.log_callback.info(
-                    'Package build_id condition failed: '
+                    'Package release condition failed: '
                     ' {name} {cur_version} {exp} {exp_version}'.format(
                         name=package_name,
                         cur_version=package_data.release,
                         exp=condition_eval,
-                        exp_version=condition['build_id']
+                        exp_version=condition['release']
                     )
                 )
                 return False

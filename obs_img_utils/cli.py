@@ -19,17 +19,92 @@
 import click
 import logging
 
-from obs_img_downloader.utils import (
+from obs_img_utils.utils import (
     get_config,
     click_progress_callback,
     conditions_repl,
     handle_errors,
     echo_package,
-    echo_packages
+    echo_packages,
+    get_logger,
+    process_shared_options
 )
-from obs_img_downloader.api import ImageDownloader, extensions
+from obs_img_utils.api import ImageDownloader, extensions
 
-logger = logging.getLogger('obs_img_downloader')
+shared_options = [
+    click.option(
+        '-C',
+        '--config',
+        type=click.Path(exists=True),
+        help='Image Downloader config file to use. Default: '
+             '~/.config/obs_img_utils/config.yaml'
+    ),
+    click.option(
+        '--no-color',
+        is_flag=True,
+        help='Remove ANSI color and styling from output.'
+    ),
+    click.option(
+        '--debug',
+        'log_level',
+        flag_value=logging.DEBUG,
+        help='Display debug level logging to console.'
+    ),
+    click.option(
+        '--verbose',
+        'log_level',
+        flag_value=logging.INFO,
+        default=True,
+        help='Display logging info to console. (Default)'
+    ),
+    click.option(
+        '--quiet',
+        'log_level',
+        flag_value=logging.WARNING,
+        help='Disable console output.'
+    ),
+    click.option(
+        '--download-url',
+        type=click.STRING,
+        help='OBS download URL.'
+    ),
+    click.option(
+        '--download-dir',
+        type=click.Path(exists=True),
+        help='Directory to store downloaded images and checksums.'
+    ),
+    click.option(
+        '--image-name',
+        type=click.STRING,
+        help='Image name from the OBS download URL.',
+        required=True
+    ),
+    click.option(
+        '--cloud',
+        type=click.Choice(extensions.keys()),
+        help='Cloud framework for the image to be downloaded.'
+    ),
+    click.option(
+        '--arch',
+        type=click.Choice(['x86_64', 'aarch64']),
+        help='Architecture of the image.'
+    ),
+    click.option(
+        '--version-format',
+        type=click.STRING,
+        help='Version format for image. Should contain format strings for'
+             ' {kiwi_version} and {obs_build}.'
+             ' Example: "{kiwi_version}-Build{obs_build}".'
+    )
+]
+
+
+def add_options(options):
+    def _add_options(func):
+        for option in reversed(options):
+            func = option(func)
+        return func
+    return _add_options
 
 
 def print_license(ctx, param, value):
@@ -54,104 +129,13 @@ def abort_if_false(ctx, param, value):
     is_eager=True,
     help='Show license information.'
 )
-@click.option(
-    '-C',
-    '--config',
-    type=click.Path(exists=True),
-    help='Image Downloader config file to use. Default: '
-         '~/.config/obs_img_downloader/config.yaml'
-)
-@click.option(
-    '--no-color',
-    is_flag=True,
-    help='Remove ANSI color and styling from output.'
-)
-@click.option(
-    '--debug',
-    'log_level',
-    flag_value=logging.DEBUG,
-    help='Display debug level logging to console.'
-)
-@click.option(
-    '--verbose',
-    'log_level',
-    flag_value=logging.INFO,
-    default=True,
-    help='Display logging info to console. (Default)'
-)
-@click.option(
-    '--quiet',
-    'log_level',
-    flag_value=logging.WARNING,
-    help='Disable console output.'
-)
-@click.option(
-    '--download-url',
-    type=click.STRING,
-    help='OBS download URL.'
-)
-@click.option(
-    '--download-dir',
-    type=click.Path(exists=True),
-    help='Directory to store downloaded images and checksums.'
-)
-@click.option(
-    '--image-name',
-    type=click.STRING,
-    help='Image name from the OBS download URL.',
-    required=True
-)
-@click.option(
-    '--cloud',
-    type=click.Choice(extensions.keys()),
-    help='Cloud framework for the image to be downloaded.'
-)
-@click.option(
-    '--arch',
-    type=click.Choice(['x86_64', 'aarch64']),
-    help='Architecture of the image.'
-)
-@click.option(
-    '--version-format',
-    type=click.STRING,
-    help='Version format for image. Should contain format strings for'
-         ' {kiwi_version} and {obs_build}.'
-         ' Example: "{kiwi_version}-Build{obs_build}".'
-)
 @click.pass_context
-def main(
-    context,
-    config,
-    no_color,
-    log_level,
-    download_url,
-    download_dir,
-    image_name,
-    cloud,
-    arch,
-    version_format,
-):
+def main(context):
     """
     The command line interface allows you to download and check OBS images.
     """
     if context.obj is None:
         context.obj = {}
-
-    logger.setLevel(log_level)
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(log_level)
-    console_handler.setFormatter(logging.Formatter('%(message)s'))
-    logger.addHandler(console_handler)
-
-    context.obj['config'] = config
-    context.obj['no_color'] = no_color
-    context.obj['log_level'] = log_level
-    context.obj['download_url'] = download_url
-    context.obj['download_dir'] = download_dir
-    context.obj['cloud'] = cloud
-    context.obj['arch'] = arch
-    context.obj['version_format'] = version_format
-    context.obj['image_name'] = image_name
 
 
 @click.command()
@@ -163,19 +147,23 @@ def main(
 )
 @click.option(
     '--conditions-wait-time',
-    is_flag=True,
+    type=click.INT,
+    default=0,
     help='Time (in seconds) to wait for conditions '
          'to be met. Retry period is 150 seconds and'
          ' default is 0 seconds for no wait.'
 )
+@add_options(shared_options)
 @click.pass_context
-def download(context, conditions, conditions_wait_time):
+def download(context, conditions, conditions_wait_time, **kwargs):
     """
     Download image from Open Build Service at `download_url`.
     """
     context.obj['conditions_wait_time'] = conditions_wait_time
 
+    process_shared_options(context.obj, kwargs)
     config_data = get_config(context.obj)
+    logger = get_logger(config_data.log_level)
 
     image_conditions = []
     if conditions:
@@ -191,6 +179,7 @@ def download(context, conditions, conditions_wait_time):
             download_directory=config_data.download_dir,
             version_format=config_data.version_format,
             log_level=config_data.log_level,
+            conditions_wait_time=config_data.conditions_wait_time,
             log_callback=logger,
             report_callback=click_progress_callback
         )
@@ -209,12 +198,15 @@ def packages():
 
 
 @click.command(name='list')
+@add_options(shared_options)
 @click.pass_context
-def list_packages(context):
+def list_packages(context, **kwargs):
     """
     Return a list of packages for the given image.
     """
+    process_shared_options(context.obj, kwargs)
     config_data = get_config(context.obj)
+    logger = get_logger(config_data.log_level)
 
     with handle_errors(config_data.log_level, config_data.no_color):
         downloader = ImageDownloader(
@@ -242,12 +234,15 @@ def list_packages(context):
     required=True,
     help='Name of the package.'
 )
+@add_options(shared_options)
 @click.pass_context
-def show(context, package_name):
+def show(context, package_name, **kwargs):
     """
     Return information for the provided package name.
     """
+    process_shared_options(context.obj, kwargs)
     config_data = get_config(context.obj)
+    logger = get_logger(config_data.log_level)
 
     with handle_errors(config_data.log_level, config_data.no_color):
         downloader = ImageDownloader(
