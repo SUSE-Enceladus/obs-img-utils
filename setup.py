@@ -6,7 +6,7 @@
 # Copyright (c) 2019 SUSE LLC, All rights reserved.
 #
 # This file is part of obs-img-utils. obs-img-utils provides
-# an api and command line utilities for downloading images from OBS.
+# an api and command line utilities for images in OBS.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,6 +28,12 @@ with open('README.md') as readme_file:
 
 with open('requirements.txt') as req_file:
     requirements = req_file.read().splitlines()
+
+with open('requirements-test.txt') as req_file:
+    test_requirements = req_file.read().splitlines()[2:]
+
+with open('requirements-dev.txt') as req_file:
+    dev_requirements = test_requirements + req_file.read().splitlines()[2:]
 
 
 setup(
@@ -51,6 +57,10 @@ setup(
     include_package_data=True,
     python_requires='>=3.5',
     install_requires=requirements,
+    extras_require={
+        'dev': dev_requirements,
+        'test': test_requirements
+    },
     license='GPLv3+',
     zip_safe=False,
     keywords='obs-img-utils obs_img_utils',

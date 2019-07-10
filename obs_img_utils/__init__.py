@@ -1,7 +1,7 @@
 # Copyright (c) 2019 SUSE LLC, All rights reserved.
 #
-# This file is part of obs-img-downloader. obs-img-downloader provides
-# an api and command line utilities for downloading images from OBS.
+# This file is part of obs-img-utils. obs-img-utils provides
+# an api and command line utilities for images in OBS.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,3 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+__author__ = """SUSE"""
+__email__ = 'public-cloud-dev@susecloud.net'
+__version__ = '0.0.1'

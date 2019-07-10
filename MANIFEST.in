@@ -1,0 +1,15 @@
+include CHANGES.md
+include CONTRIBUTING.md
+include LICENSE
+include README.md
+include package/python3-obs-img-utils.spec
+include requirements.txt
+include requirements-test.txt
+include requirements-dev.txt
+
+recursive-include tests *
+recursive-include man *.1
+recursive-include docs *.md
+recursive-exclude * __pycache__
+recursive-exclude * *.coverage
+recursive-exclude * *.py[co]
