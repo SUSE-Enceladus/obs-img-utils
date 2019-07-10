@@ -29,7 +29,7 @@ from obs_img_utils.utils import (
     get_logger,
     process_shared_options
 )
-from obs_img_utils.api import ImageDownloader, extensions
+from obs_img_utils.api import OBSImageUtil, extensions
 
 shared_options = [
     click.option(
@@ -173,7 +173,7 @@ def download(context, conditions, conditions_wait_time, **kwargs):
         image_conditions = conditions_repl()
 
     with handle_errors(config_data.log_level, config_data.no_color):
-        downloader = ImageDownloader(
+        downloader = OBSImageUtil(
             config_data.download_url,
             context.obj['image_name'],
             config_data.cloud,
@@ -212,7 +212,7 @@ def list_packages(context, **kwargs):
     logger = get_logger(config_data.log_level)
 
     with handle_errors(config_data.log_level, config_data.no_color):
-        downloader = ImageDownloader(
+        downloader = OBSImageUtil(
             config_data.download_url,
             config_data.image_name,
             config_data.cloud,
@@ -248,7 +248,7 @@ def show(context, package_name, **kwargs):
     logger = get_logger(config_data.log_level)
 
     with handle_errors(config_data.log_level, config_data.no_color):
-        downloader = ImageDownloader(
+        downloader = OBSImageUtil(
             config_data.download_url,
             config_data.image_name,
             config_data.cloud,

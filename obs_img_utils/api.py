@@ -67,7 +67,7 @@ build_version = namedtuple(
 )
 
 
-class ImageDownloader(object):
+class OBSImageUtil(object):
     """
     Implements image downloader.
     """

@@ -20,13 +20,13 @@ import pytest
 
 from unittest.mock import patch
 
-from obs_img_utils.api import ImageDownloader, package_type
+from obs_img_utils.api import OBSImageUtil, package_type
 from obs_img_utils.exceptions import PackageVersionException
 
 
 class TestAPI(object):
     def setup(self):
-        self.downloader = ImageDownloader(
+        self.downloader = OBSImageUtil(
             'https://provo-mirror.opensuse.org/repositories/',
             'openSUSE-Leap-15.0-Azure',
             'azure',
@@ -50,7 +50,7 @@ class TestAPI(object):
         with pytest.raises(PackageVersionException):
             self.downloader._version_compare('2.0', '1.0', '===')
 
-    @patch.object(ImageDownloader, '_get_image_checksum')
+    @patch.object(OBSImageUtil, '_get_image_checksum')
     @patch('obs_img_utils.api.time')
     def test_wait_for_new_image(self, mock_time, mock_get_checksum):
         self.downloader.image_checksum = 'ABC12345678890'
