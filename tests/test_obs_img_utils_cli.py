@@ -48,9 +48,9 @@ def test_cli_main_help():
 @pytest.mark.parametrize(
     "endpoint,value",
     [('download',
-      'Download image from Open Build Service at `download_url`.'),
+      'Download image from OBS repository specified by `download-url`'),
      ('packages',
-      'Handle package requests.')],
+      'Package commands')],
     ids=['obs-img-utils-download', 'obs-img-utils-packages']
 )
 def test_cli_subcommand_help(endpoint, value):

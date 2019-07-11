@@ -56,7 +56,7 @@ bar = None
 
 def get_config(cli_context):
     """
-    Process Image Downloader config.
+    Process OBS Image utils config.
 
     Use ChainMap to build config values based on
     command line args, config and defaults.
@@ -77,6 +77,11 @@ def get_config(cli_context):
 
 
 def click_progress_callback(block_num, read_size, total_size, done=False):
+    """
+    Update the module level progress bar with image download progress.
+
+    If download has finished flush stdout with render_finish.
+    """
     if done and module.bar:
         module.bar.render_finish()
         module.bar = None
@@ -99,14 +104,14 @@ def retry(exceptions, tries=4, delay=3, backoff=2):
 
         @wraps(f)
         def f_retry(*args, **kwargs):
-            mtries, mdelay = tries, delay
-            while mtries > 1:
+            retries, cur_delay = tries, delay
+            while retries > 1:
                 try:
                     return f(*args, **kwargs)
-                except exceptions as e:
+                except exceptions as error:
                     msg = '{}, Retrying in {} seconds...'.format(
-                        e,
-                        mdelay
+                        error,
+                        cur_delay
                     )
 
                     with suppress(Exception):
@@ -114,10 +119,10 @@ def retry(exceptions, tries=4, delay=3, backoff=2):
                         log_callback = locals()['args'][0].log_callback
                         log_callback.warning(msg)
 
-                    time.sleep(mdelay)
-                    mtries -= 1
+                    time.sleep(cur_delay)
+                    retries -= 1
 
-                    mdelay *= backoff
+                    cur_delay *= backoff
             return f(*args, **kwargs)
 
         return f_retry  # true decorator
@@ -133,6 +138,9 @@ def echo_style(message, no_color, fg='green'):
 
 
 def conditions_repl():
+    """
+    Query and accept input for image condition options.
+    """
     image_conditions = []
     while True:
         if click.confirm('Add an image condition?'):
@@ -258,15 +266,24 @@ def echo_packages(data, no_color):
 
 
 def get_logger(log_level):
+    """
+    Return new console logger at provided log level.
+    """
     logger = logging.getLogger('obs_img_utils')
     logger.setLevel(log_level)
+
     console_handler = logging.StreamHandler()
     console_handler.setLevel(log_level)
     console_handler.setFormatter(logging.Formatter('%(message)s'))
+
     logger.addHandler(console_handler)
+    return logger
 
 
 def process_shared_options(context_obj, kwargs):
+    """
+    Update context with values for shared options.
+    """
     context_obj['config'] = kwargs['config']
     context_obj['no_color'] = kwargs['no_color']
     context_obj['log_level'] = kwargs['log_level']
@@ -279,6 +296,9 @@ def process_shared_options(context_obj, kwargs):
 
 
 def get_hash_from_image(image_file):
+    """
+    Calculate hash of image read in from stream.
+    """
     image_hash = hashlib.sha256()
     with open(image_file, 'rb') as f:
         for byte_block in iter(lambda: f.read(4096), b''):
@@ -288,6 +308,11 @@ def get_hash_from_image(image_file):
 
 
 def get_checksum_from_file(checksum_file):
+    """
+    Get the checksum from OBS image.
+
+    Expects an inline signed file where checksum is on line 4.
+    """
     with open(checksum_file, 'r') as f:
         lines = f.readlines()
         expected_checksum = lines[3].strip()

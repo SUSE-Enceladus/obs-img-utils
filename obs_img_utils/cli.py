@@ -36,7 +36,7 @@ shared_options = [
         '-C',
         '--config',
         type=click.Path(exists=True),
-        help='Image Downloader config file to use. Default: '
+        help='OBS Image utils config file to use. Default: '
              '~/.config/obs_img_utils/config.yaml'
     ),
     click.option(
@@ -66,7 +66,7 @@ shared_options = [
     click.option(
         '--download-url',
         type=click.STRING,
-        help='OBS download URL.'
+        help='URL for OBS download repository.'
     ),
     click.option(
         '--download-dir',
@@ -76,7 +76,7 @@ shared_options = [
     click.option(
         '--image-name',
         type=click.STRING,
-        help='Image name from the OBS download URL.',
+        help='Image name to download from the download-url.',
         required=True
     ),
     click.option(
@@ -160,7 +160,7 @@ def main(context):
 @click.pass_context
 def download(context, conditions, conditions_wait_time, **kwargs):
     """
-    Download image from Open Build Service at `download_url`.
+    Download image from OBS repository specified by `download-url`.
     """
     context.obj['conditions_wait_time'] = conditions_wait_time
 
@@ -196,7 +196,7 @@ def download(context, conditions, conditions_wait_time, **kwargs):
 @click.group()
 def packages():
     """
-    Handle package requests.
+    Package commands.
     """
 
 
@@ -205,7 +205,7 @@ def packages():
 @click.pass_context
 def list_packages(context, **kwargs):
     """
-    Return a list of packages for the given image.
+    Return a list of packages for the given image name.
     """
     process_shared_options(context.obj, kwargs)
     config_data = get_config(context.obj)
@@ -241,7 +241,7 @@ def list_packages(context, **kwargs):
 @click.pass_context
 def show(context, package_name, **kwargs):
     """
-    Return information for the provided package name.
+    Return information for the provided package name in the given image.
     """
     process_shared_options(context.obj, kwargs)
     config_data = get_config(context.obj)

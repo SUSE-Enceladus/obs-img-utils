@@ -29,13 +29,13 @@ from tempfile import NamedTemporaryFile
 from urllib.error import ContentTooShortError, URLError
 
 from obs_img_utils.exceptions import (
-    ImageDownloadException,
-    ImageDownloaderException,
-    DownloadPackagesFileException,
-    ImageConditionsException,
-    PackageVersionException,
-    ImageChecksumException,
-    ImageVersionException
+    OBSImageDownloadException,
+    OBSImageUtilsException,
+    DownloadPackagesFileExceptionOBS,
+    OBSImageConditionsException,
+    PackageVersionExceptionOBS,
+    OBSImageChecksumException,
+    OBSImageVersionException
 )
 from obs_img_utils.utils import (
     defaults,
@@ -98,7 +98,7 @@ class OBSImageUtil(object):
         self.cloud = cloud.lower()
 
         if self.cloud not in extensions.keys():
-            raise ImageDownloaderException(
+            raise OBSImageUtilsException(
                 '{cloud} is not supported. '
                 'Valid values are azure, ec2, gce or oci'.format(
                     cloud=self.cloud
@@ -148,10 +148,10 @@ class OBSImageUtil(object):
         return image_status
 
     @retry((
-        ContentTooShortError,
-        URLError,
-        ImageDownloadException,
-        ImageChecksumException
+            ContentTooShortError,
+            URLError,
+            OBSImageDownloadException,
+            OBSImageChecksumException
     ))
     def _download_image(self):
         """
@@ -183,7 +183,7 @@ class OBSImageUtil(object):
         )
 
         if not image_file:
-            raise ImageDownloadException(
+            raise OBSImageDownloadException(
                 'No {cloud} images found that match {regex} at {url}'.format(
                     cloud=self.cloud,
                     regex=regex,
@@ -198,7 +198,7 @@ class OBSImageUtil(object):
         image_hash = get_hash_from_image(image_file)
 
         if image_hash.hexdigest() != expected_checksum:
-            raise ImageChecksumException(
+            raise OBSImageChecksumException(
                 'Image checksum does not match expected value'
             )
 
@@ -215,7 +215,7 @@ class OBSImageUtil(object):
         )
 
         if not image_checksum:
-            raise ImageChecksumException(
+            raise OBSImageChecksumException(
                 'No checksum file found that matches {regex} at {url}'.format(
                     regex=regex,
                     url=self.download_url
@@ -275,7 +275,7 @@ class OBSImageUtil(object):
                     condition['status'] = False
 
         if not self._image_conditions_complied():
-            raise ImageConditionsException('Image conditions not met')
+            raise OBSImageConditionsException('Image conditions not met')
 
     def _wait_on_image_conditions(self):
         start = time.time()
@@ -285,7 +285,7 @@ class OBSImageUtil(object):
             try:
                 self.check_image_conditions()
                 break
-            except ImageConditionsException as error:
+            except OBSImageConditionsException as error:
                 if time.time() < end:
                     self.log_callback.warning(
                         '{error}, retrying in 150 seconds...'.format(
@@ -297,9 +297,9 @@ class OBSImageUtil(object):
                     raise
 
     @retry((
-        ContentTooShortError,
-        URLError,
-        ImageChecksumException
+            ContentTooShortError,
+            URLError,
+            OBSImageChecksumException
     ))
     def wait_for_new_image(self):
         self.log_callback.debug('Waiting for new image')
@@ -322,7 +322,7 @@ class OBSImageUtil(object):
         self._download_image()
         return self.image_status['image_source']
 
-    @retry(DownloadPackagesFileException)
+    @retry(DownloadPackagesFileExceptionOBS)
     def _download_packages_file(self, packages_file_name):
         regex = r''.join([
             self.base_regex,
@@ -342,7 +342,7 @@ class OBSImageUtil(object):
         )
 
         if not self.image_metadata_name:
-            raise DownloadPackagesFileException(
+            raise DownloadPackagesFileExceptionOBS(
                 'No image metadata found matching: {regex}, '
                 'at {url}'.format(
                     regex=regex,
@@ -357,7 +357,7 @@ class OBSImageUtil(object):
         ).kiwi_version
 
         if version == 'unknown':
-            raise ImageVersionException(
+            raise OBSImageVersionException(
                 'No image version found using {formatter}. '
                 'Unexpected image name format: {name}'.format(
                     formatter=self.version_format,
@@ -406,7 +406,7 @@ class OBSImageUtil(object):
         elif condition == '<':
             return parse_version(current) < parse_version(expected)
         else:
-            raise PackageVersionException(
+            raise PackageVersionExceptionOBS(
                 'Invalid version compare expression: "{0}"'.format(condition)
             )
 

@@ -21,7 +21,7 @@ import pytest
 from unittest.mock import patch
 
 from obs_img_utils.api import OBSImageUtil, package_type
-from obs_img_utils.exceptions import PackageVersionException
+from obs_img_utils.exceptions import PackageVersionExceptionOBS
 
 
 class TestAPI(object):
@@ -47,7 +47,7 @@ class TestAPI(object):
         result = self.downloader._version_compare('1.0', '2.0', '<')
         assert result
 
-        with pytest.raises(PackageVersionException):
+        with pytest.raises(PackageVersionExceptionOBS):
             self.downloader._version_compare('2.0', '1.0', '===')
 
     @patch.object(OBSImageUtil, '_get_image_checksum')

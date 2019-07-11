@@ -1,0 +1,19 @@
+language: python
+dist: xenial
+python:
+  - "3.5"
+  - "3.6"
+  - "3.7"
+install:
+  - pip install -e .[dev]
+script:
+  - pytest --cov=obs_img_utils
+  - flake8 obs_img_utils
+  - flake8 tests --exclude=data
+deploy:
+  provider: pypi
+  user: "suse-pub-cloud-dev"
+  password: $PYPI_PASS
+  on:
+    tags: true
+  skip_existing: true

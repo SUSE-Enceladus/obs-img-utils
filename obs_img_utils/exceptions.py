@@ -17,12 +17,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-class ImageDownloaderException(Exception):
+class OBSImageUtilsException(Exception):
     """
     Base class to handle all known exceptions.
 
     Specific exceptions are implemented as sub classes
-    of ImageDownloaderException.
+    of OBSImageUtilsException.
 
     Attributes
     * :attr:`message`
@@ -35,37 +35,37 @@ class ImageDownloaderException(Exception):
         return format(self.message)
 
 
-class DownloadPackagesFileException(ImageDownloaderException):
+class DownloadPackagesFileExceptionOBS(OBSImageUtilsException):
     """
     Exception raised if there is an issue downloading packages file.
     """
 
 
-class ImageConditionsException(ImageDownloaderException):
+class OBSImageConditionsException(OBSImageUtilsException):
     """
     Exception raised if image metadata does not match conditions.
     """
 
 
-class PackageVersionException(ImageDownloaderException):
+class PackageVersionExceptionOBS(OBSImageUtilsException):
     """
     Exception raised if package does not match version conditions.
     """
 
 
-class ImageChecksumException(ImageDownloaderException):
+class OBSImageChecksumException(OBSImageUtilsException):
     """
     Exception raised if image checksum does not match.
     """
 
 
-class ImageVersionException(ImageDownloaderException):
+class OBSImageVersionException(OBSImageUtilsException):
     """
     Exception raised when unable to parse image version.
     """
 
 
-class ImageDownloadException(ImageDownloaderException):
+class OBSImageDownloadException(OBSImageUtilsException):
     """
     Exception raised when unable to download image file.
     """
