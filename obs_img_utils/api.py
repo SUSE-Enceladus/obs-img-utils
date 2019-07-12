@@ -216,7 +216,7 @@ class OBSImageUtil(object):
 
         if not image_checksum:
             raise OBSImageChecksumException(
-                'No checksum file found that matches {name} at {url}'.format(
+                'No checksum found that matches image {name} at {url}'.format(
                     name=name,
                     url=self.download_url
                 )
@@ -323,7 +323,7 @@ class OBSImageUtil(object):
         ])
 
         self.log_callback.debug(
-            'Fetching packages file {name} from {url}'.format(
+            'Fetching packages file for image {name} from {url}'.format(
                 name=self.image_name,
                 url=self.download_url
             )
