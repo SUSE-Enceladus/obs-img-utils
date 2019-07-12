@@ -29,7 +29,7 @@ from obs_img_utils.utils import (
     get_logger,
     process_shared_options
 )
-from obs_img_utils.api import OBSImageUtil, extensions
+from obs_img_utils.api import OBSImageUtil
 
 shared_options = [
     click.option(
@@ -69,7 +69,7 @@ shared_options = [
         help='URL for OBS download repository.'
     ),
     click.option(
-        '--download-dir',
+        '--target-dir',
         type=click.Path(exists=True),
         help='Directory to store downloaded images and checksums.'
     ),
@@ -80,21 +80,14 @@ shared_options = [
         required=True
     ),
     click.option(
-        '--cloud',
-        type=click.Choice(extensions.keys()),
-        help='Cloud framework for the image to be downloaded.'
-    ),
-    click.option(
         '--arch',
         type=click.Choice(['x86_64', 'aarch64']),
         help='Architecture of the image.'
     ),
     click.option(
-        '--version-format',
+        '--profile',
         type=click.STRING,
-        help='Version format for image. Should contain format strings for'
-             ' {kiwi_version} and {obs_build}.'
-             ' Example: "{kiwi_version}-Build{obs_build}".'
+        help='The multibuild profile name for the image.'
     )
 ]
 
@@ -156,13 +149,32 @@ def main(context):
          'to be met. Retry period is 150 seconds and'
          ' default is 0 seconds for no wait.'
 )
+@click.option(
+    '--extension',
+    type=click.STRING,
+    help='Image file extension. Examples: [tar.gz, raw.xz]'
+)
+@click.option(
+    '--checksum-extension',
+    type=click.STRING,
+    help='Image checksum file extension. Example: sha256'
+)
 @add_options(shared_options)
 @click.pass_context
-def download(context, conditions, conditions_wait_time, **kwargs):
+def download(
+    context,
+    conditions,
+    conditions_wait_time,
+    extension,
+    checksum_extension,
+    **kwargs
+):
     """
     Download image from OBS repository specified by `download-url`.
     """
     context.obj['conditions_wait_time'] = conditions_wait_time
+    context.obj['checksum_extension'] = checksum_extension
+    context.obj['extension'] = extension
 
     process_shared_options(context.obj, kwargs)
     config_data = get_config(context.obj)
@@ -176,15 +188,16 @@ def download(context, conditions, conditions_wait_time, **kwargs):
         downloader = OBSImageUtil(
             config_data.download_url,
             context.obj['image_name'],
-            config_data.cloud,
             conditions=image_conditions,
             arch=config_data.arch,
-            download_directory=config_data.download_dir,
-            version_format=config_data.version_format,
+            target_directory=config_data.target_dir,
+            profile=config_data.profile,
             log_level=config_data.log_level,
             conditions_wait_time=config_data.conditions_wait_time,
             log_callback=logger,
-            report_callback=click_progress_callback
+            report_callback=click_progress_callback,
+            checksum_extension=config_data.checksum_extension,
+            extension=config_data.extension
         )
         image_source = downloader.get_image()
 
@@ -215,10 +228,9 @@ def list_packages(context, **kwargs):
         downloader = OBSImageUtil(
             config_data.download_url,
             config_data.image_name,
-            config_data.cloud,
             arch=config_data.arch,
-            download_directory=config_data.download_dir,
-            version_format=config_data.version_format,
+            target_directory=config_data.target_dir,
+            profile=config_data.profile,
             log_level=config_data.log_level,
             log_callback=logger
         )
@@ -251,10 +263,9 @@ def show(context, package_name, **kwargs):
         downloader = OBSImageUtil(
             config_data.download_url,
             config_data.image_name,
-            config_data.cloud,
             arch=config_data.arch,
-            download_directory=config_data.download_dir,
-            version_format=config_data.version_format,
+            target_directory=config_data.target_dir,
+            profile=config_data.profile,
             log_level=config_data.log_level,
             log_callback=logger
         )

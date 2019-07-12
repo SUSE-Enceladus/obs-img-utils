@@ -30,7 +30,6 @@ from urllib.error import ContentTooShortError, URLError
 
 from obs_img_utils.exceptions import (
     OBSImageDownloadException,
-    OBSImageUtilsException,
     DownloadPackagesFileExceptionOBS,
     OBSImageConditionsException,
     PackageVersionExceptionOBS,
@@ -41,16 +40,11 @@ from obs_img_utils.utils import (
     defaults,
     retry,
     get_hash_from_image,
-    get_checksum_from_file
+    get_checksum_from_file,
+    extensions,
+    checksum_extensions
 )
 from obs_img_utils.web_content import WebContent
-
-extensions = {
-    'azure': r'vhdfixed\.xz',
-    'ec2': r'raw\.xz',
-    'gce': r'tar\.gz',
-    'oci': r'qcow2'
-}
 
 version_match = r'(.*)'
 
@@ -75,15 +69,16 @@ class OBSImageUtil(object):
         self,
         download_url,
         image_name,
-        cloud,
         conditions=None,
         arch='x86_64',
-        download_directory=None,
-        version_format=None,
+        target_directory=None,
+        profile=None,
         log_level=logging.INFO,
         conditions_wait_time=0,
         log_callback=None,
-        report_callback=None
+        report_callback=None,
+        checksum_extension=None,
+        extension=None
     ):
         if log_callback:
             self.log_callback = log_callback
@@ -95,29 +90,41 @@ class OBSImageUtil(object):
         self.download_url = download_url
         self.image_name = image_name
         self.conditions_wait_time = conditions_wait_time
-        self.cloud = cloud.lower()
 
-        if self.cloud not in extensions.keys():
-            raise OBSImageUtilsException(
-                '{cloud} is not supported. '
-                'Valid values are azure, ec2, gce or oci'.format(
-                    cloud=self.cloud
-                )
-            )
-
-        self.extension = extensions[self.cloud]
         self.arch = arch
-        self.download_directory = os.path.expanduser(
-            download_directory or defaults['download_dir']
+        self.target_directory = os.path.expanduser(
+            target_directory or defaults['target_dir']
         )
         self.image_metadata_name = None
         self.image_checksum = None
         self.conditions = conditions
-        self.version_format = version_format or defaults['version_format']
-        self.version_format = self.version_format.format(
-            kiwi_version=version_match,
-            obs_build=version_match
-        )
+
+        if checksum_extension:
+            self.checksum_extensions = [checksum_extension]
+        else:
+            self.checksum_extensions = checksum_extensions
+
+        if extension:
+            self.extensions = [extension]
+        else:
+            self.extensions = extensions
+
+        if profile:
+            self.version_format = ''.join([
+                version_match,
+                '-',
+                profile,
+                '-',
+                'Build',
+                version_match
+            ])
+        else:
+            self.version_format = ''.join([
+                version_match,
+                '-',
+                'Build',
+                version_match
+            ])
 
         self.base_regex = r''.join([
             r'^',
@@ -157,43 +164,34 @@ class OBSImageUtil(object):
         """
         Download image and shasum to given file.
         """
-        mkpath(self.download_directory)
+        mkpath(self.target_directory)
 
         self._wait_on_image_conditions()
 
-        regex = r''.join([
-            r'^',
-            self.image_metadata_name.replace('.packages', ''),
-            r'\.',
-            self.extension,
-            r'$'
-        ])
-
         self.log_callback.debug(
             'Fetching image {regex} from {url}'.format(
-                regex=regex,
+                regex=self.base_regex,
                 url=self.download_url
             )
         )
+        name = self.image_metadata_name.replace('.packages', '')
         image_file = self.remote.fetch_to_dir(
-            self.image_name,
-            regex,
-            self.download_directory,
+            name,
+            self.base_regex,
+            self.target_directory,
+            self.extensions,
             self.report_callback
         )
 
         if not image_file:
             raise OBSImageDownloadException(
-                'No {cloud} images found that match {regex} at {url}'.format(
-                    cloud=self.cloud,
-                    regex=regex,
+                'No images found that match {name} at {url}'.format(
+                    name=name,
                     url=self.download_url
                 )
             )
 
-        expected_checksum = self._get_image_checksum(
-            regex.replace('$', r'\.sha256$')
-        )
+        expected_checksum = self._get_image_checksum(name)
 
         image_hash = get_hash_from_image(image_file)
 
@@ -205,19 +203,21 @@ class OBSImageUtil(object):
         self.image_checksum = expected_checksum
         self.image_status['image_source'] = image_file
 
-    def _get_image_checksum(self, regex):
+    def _get_image_checksum(self, name=None):
         self.log_callback.debug('Fetching image checksum')
+        name = name if name else self.image_name
 
         image_checksum = self.remote.fetch_to_dir(
-            self.image_name,
-            regex,
-            self.download_directory
+            name,
+            self.base_regex,
+            self.target_directory,
+            self.checksum_extensions
         )
 
         if not image_checksum:
             raise OBSImageChecksumException(
-                'No checksum file found that matches {regex} at {url}'.format(
-                    regex=regex,
+                'No checksum file found that matches {name} at {url}'.format(
+                    name=name,
                     url=self.download_url
                 )
             )
@@ -268,7 +268,7 @@ class OBSImageUtil(object):
                     condition['status'] = False
             elif 'package_name' in condition:
                 if self._lookup_package(
-                        self.image_status['packages'], condition
+                    self.image_status['packages'], condition
                 ):
                     condition['status'] = True
                 else:
@@ -305,14 +305,7 @@ class OBSImageUtil(object):
         self.log_callback.debug('Waiting for new image')
 
         while True:
-            regex = r''.join([
-                self.base_regex,
-                r'\.',
-                self.extension,
-                r'\.sha256$'
-            ])
-
-            latest_checksum = self._get_image_checksum(regex)
+            latest_checksum = self._get_image_checksum()
             if self.image_checksum != latest_checksum:
                 return
 

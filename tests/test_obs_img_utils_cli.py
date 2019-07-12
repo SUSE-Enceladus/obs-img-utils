@@ -78,11 +78,10 @@ def test_packages_list(mock_temp_file, mock_retrieve, mock_url_open):
         [
             'packages', 'list',
             '--image-name', 'openSUSE-Leap-15.0-Azure',
-            '--cloud', 'azure',
             '--download-url',
             'https://provo-mirror.opensuse.org/repositories/'
             'Cloud:/Images:/Leap_15.0/images/',
-            '--download-dir', 'tests/data'
+            '--target-dir', 'tests/data'
         ]
     )
     assert result.exit_code == 0
@@ -113,11 +112,10 @@ def test_packages_show(mock_temp_file, mock_retrieve, mock_url_open):
         [
             'packages', 'show',
             '--image-name', 'openSUSE-Leap-15.0-Azure',
-            '--cloud', 'azure',
             '--download-url',
             'https://provo-mirror.opensuse.org/repositories/'
             'Cloud:/Images:/Leap_15.0/images/',
-            '--download-dir', 'tests/data',
+            '--target-dir', 'tests/data',
             '--package-name', 'apparmor-parser'
         ]
     )
@@ -157,11 +155,10 @@ def test_image_download(
         [
             'download',
             '--image-name', 'openSUSE-Leap-15.0-Azure',
-            '--cloud', 'azure',
             '--download-url',
             'https://provo-mirror.opensuse.org/repositories/'
             'Cloud:/Images:/Leap_15.0/images/',
-            '--download-dir', 'tests/data/', '--conditions'
+            '--target-dir', 'tests/data/', '--conditions'
         ],
         input='y\n'
               'image\n'
@@ -211,11 +208,10 @@ def test_image_download_failed_conditions(
         [
             'download',
             '--image-name', 'openSUSE-Leap-15.0-Azure',
-            '--cloud', 'azure',
             '--download-url',
             'https://provo-mirror.opensuse.org/repositories/'
             'Cloud:/Images:/Leap_15.0/images/',
-            '--download-dir', 'tests/data/', '--conditions',
+            '--target-dir', 'tests/data/', '--conditions',
             '--conditions-wait-time', '1'
         ],
         input='y\n'

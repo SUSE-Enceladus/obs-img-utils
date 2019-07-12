@@ -57,23 +57,31 @@ class WebContent(object):
                 )
                 return name
 
-    def fetch_to_dir(self, base_name, regex, target_dir, callback=None):
+    def fetch_to_dir(
+        self,
+        base_name,
+        regex,
+        target_dir,
+        extensions,
+        callback=None
+    ):
         kwargs = {}
         if callback:
             kwargs['reporthook'] = callback
 
         for name in self.fetch_index_list(base_name):
-            if re.match(regex, name):
-                target_file = os.sep.join([target_dir, name])
+            for extension in extensions:
+                if name.endswith(extension) and re.match(regex, name):
+                    target_file = os.sep.join([target_dir, name])
 
-                try:
-                    urlretrieve(
-                        os.sep.join([self.uri, name]),
-                        target_file,
-                        **kwargs
-                    )
-                finally:
-                    if callback:
-                        callback(0, 0, 0, True)
+                    try:
+                        urlretrieve(
+                            os.sep.join([self.uri, name]),
+                            target_file,
+                            **kwargs
+                        )
+                    finally:
+                        if callback:
+                            callback(0, 0, 0, True)
 
-                return target_file
+                    return target_file

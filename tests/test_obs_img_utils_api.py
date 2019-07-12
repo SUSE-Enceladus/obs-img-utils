@@ -29,9 +29,8 @@ class TestAPI(object):
         self.downloader = OBSImageUtil(
             'https://provo-mirror.opensuse.org/repositories/',
             'openSUSE-Leap-15.0-Azure',
-            'azure',
             arch='x86_64',
-            download_directory='tests/data'
+            target_directory='tests/data'
         )
 
     def test_version_compare(self):

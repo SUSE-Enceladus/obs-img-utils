@@ -32,18 +32,27 @@ from functools import wraps
 module = sys.modules[__name__]
 
 default_config = os.path.expanduser('~/.config/obs_img_utils/config.yaml')
+extensions = [
+    'vhdfixed.xz',
+    'raw.xz',
+    'tar.gz',
+    'qcow2'
+]
+checksum_extensions = ['sha256']
+
 defaults = {
     'arch': 'x86_64',
-    'cloud': 'ec2',
     'config': default_config,
-    'download_dir': os.path.expanduser('~/obs_img_utils/images'),
+    'target_dir': os.path.expanduser('~/obs_img_utils/images'),
     'download_url': 'https://provo-mirror.opensuse.org/repositories'
                     '/Cloud:/Images:/Leap_15.0/images/',
     'image_name': None,
     'log_level': logging.INFO,
     'no_color': False,
-    'version_format': '{kiwi_version}-Build{obs_build}',
-    'conditions_wait_time': 0
+    'conditions_wait_time': 0,
+    'profile': None,
+    'checksum_extension': None,
+    'extension': None
 }
 
 img_downloader_config = namedtuple(
@@ -93,7 +102,7 @@ def click_progress_callback(block_num, read_size, total_size, done=False):
             label='Downloading image'
         )
 
-    module.bar.update(block_num)
+    module.bar.update(read_size)
 
 
 def retry(exceptions, tries=4, delay=3, backoff=2):
@@ -288,10 +297,9 @@ def process_shared_options(context_obj, kwargs):
     context_obj['no_color'] = kwargs['no_color']
     context_obj['log_level'] = kwargs['log_level']
     context_obj['download_url'] = kwargs['download_url']
-    context_obj['download_dir'] = kwargs['download_dir']
-    context_obj['cloud'] = kwargs['cloud']
+    context_obj['target_dir'] = kwargs['target_dir']
     context_obj['arch'] = kwargs['arch']
-    context_obj['version_format'] = kwargs['version_format']
+    context_obj['profile'] = kwargs['profile']
     context_obj['image_name'] = kwargs['image_name']
 
 
