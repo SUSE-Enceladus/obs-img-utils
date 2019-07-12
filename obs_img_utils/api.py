@@ -143,7 +143,7 @@ class OBSImageUtil(object):
         image_status = {
             'name': self.image_name,
             'job_status': 'prepared',
-            'image_source': ['unknown'],
+            'image_source': 'unknown',
             'packages': {},
             'version': 'unknown',
             'conditions': []
@@ -169,8 +169,8 @@ class OBSImageUtil(object):
         self._wait_on_image_conditions()
 
         self.log_callback.debug(
-            'Fetching image {regex} from {url}'.format(
-                regex=self.base_regex,
+            'Fetching image {name} from {url}'.format(
+                name=self.image_name,
                 url=self.download_url
             )
         )
@@ -323,8 +323,8 @@ class OBSImageUtil(object):
         ])
 
         self.log_callback.debug(
-            'Fetching packages file {regex} from {url}'.format(
-                regex=regex,
+            'Fetching packages file {name} from {url}'.format(
+                name=self.image_name,
                 url=self.download_url
             )
         )
