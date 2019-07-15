@@ -17,10 +17,7 @@ The following options are currently available in the configuration file:
 *arch*
   Architecture of image. Example *x86_64*
 
-*cloud*
-  Cloud provider the image is built for. Example *ec2*
-
-*download_dir*
+*target_dir*
   Directory for saving image and checksum. Example */home/{user}/images*
 
 *download_url*

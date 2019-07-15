@@ -1,4 +1,4 @@
-.TH "OBS-IMG-UTILS PACKAGES LIST" "1" "11-Jul-2019" "" "obs-img-utils packages list Manual"
+.TH "OBS-IMG-UTILS PACKAGES LIST" "1" "15-Jul-2019" "" "obs-img-utils packages list Manual"
 .SH NAME
 obs-img-utils\-packages\-list \- Return a list of packages for the given image...
 .SH SYNOPSIS
@@ -26,17 +26,14 @@ Disable console output.
 \fB\-\-download\-url\fP TEXT
 URL for OBS download repository.
 .TP
-\fB\-\-download\-dir\fP PATH
+\fB\-\-target\-dir\fP PATH
 Directory to store downloaded images and checksums.
 .TP
 \fB\-\-image\-name\fP TEXT
 Image name to download from the download-url.  [required]
 .TP
-\fB\-\-cloud\fP [azure|ec2|gce|oci]
-Cloud framework for the image to be downloaded.
-.TP
 \fB\-\-arch\fP [x86_64|aarch64]
 Architecture of the image.
 .TP
-\fB\-\-version\-format\fP TEXT
-Version format for image. Should contain format strings for {kiwi_version} and {obs_build}. Example: "{kiwi_version}-Build{obs_build}".
+\fB\-\-profile\fP TEXT
+The multibuild profile name for the image.
