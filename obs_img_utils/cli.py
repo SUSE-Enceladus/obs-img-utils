@@ -136,7 +136,7 @@ def main(context):
 
 @click.command()
 @click.option(
-    '--conditions',
+    '--add-conditions',
     is_flag=True,
     help='Invoke conditions process to specify conditions '
          'for image'
@@ -163,7 +163,7 @@ def main(context):
 @click.pass_context
 def download(
     context,
-    conditions,
+    add_conditions,
     conditions_wait_time,
     extension,
     checksum_extension,
@@ -181,7 +181,7 @@ def download(
     logger = get_logger(config_data.log_level)
 
     image_conditions = []
-    if conditions:
+    if add_conditions:
         image_conditions = conditions_repl()
 
     with handle_errors(config_data.log_level, config_data.no_color):

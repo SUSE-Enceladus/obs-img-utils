@@ -287,12 +287,14 @@ class OBSImageUtil(object):
                 break
             except OBSImageConditionsException as error:
                 if time.time() < end:
+                    wait = min(150, self.conditions_wait_time)
                     self.log_callback.warning(
-                        '{error}, retrying in 150 seconds...'.format(
-                            error=error
+                        '{error}, retrying in {wait} seconds...'.format(
+                            error=error,
+                            wait=wait
                         )
                     )
-                    time.sleep(150)
+                    time.sleep(wait)
                 else:
                     raise
 
