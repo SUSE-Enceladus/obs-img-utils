@@ -182,7 +182,7 @@ def download(
 
     image_conditions = []
     if add_conditions:
-        image_conditions = conditions_repl()
+        image_conditions = conditions_repl(config_data.no_color)
 
     with handle_errors(config_data.log_level, config_data.no_color):
         downloader = OBSImageUtil(
