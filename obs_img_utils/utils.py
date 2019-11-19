@@ -146,60 +146,59 @@ def echo_style(message, no_color, fg='green'):
         click.secho(message, fg=fg)
 
 
-def conditions_repl():
+def conditions_repl(no_color):
     """
-    Query and accept input for image condition options.
+    Query and accept input for condition options.
     """
     image_conditions = []
     while True:
-        if click.confirm('Add an image condition?'):
-            condition_type = click.prompt(
-                'Enter the condition type',
-                type=click.Choice(['image', 'package'])
+        if click.confirm('Add a condition?'):
+            package_name = click.prompt(
+                'Enter the package name '
+                '(leave blank for an image condition)',
+                type=str,
+                default=''
             )
 
-            if condition_type == 'image':
-                image_version = click.prompt(
-                    'Enter the image version condition',
-                    type=str
+            condition_exp = click.prompt(
+                'Enter the condition expression',
+                type=click.Choice(['>=', '<=', '==', '>', '<']),
+                default='>='
+            )
+
+            version = click.prompt(
+                'Enter the version (optional)',
+                type=str,
+                default=''
+            )
+
+            release = click.prompt(
+                'Enter the release (optional)',
+                type=str,
+                default=''
+            )
+
+            if not (package_name or version or release):
+                echo_style(
+                    'Condition skipped, conditions require at least one of:'
+                    ' package_name, version or release.',
+                    no_color,
+                    fg='red'
                 )
+                continue
 
-                image_conditions.append({'image': image_version})
-            else:
-                package_name = click.prompt(
-                    'Enter the package name',
-                    type=str
-                )
+            condition = {
+                'condition': condition_exp,
+            }
 
-                condition_exp = click.prompt(
-                    'Enter the condition expression',
-                    type=click.Choice(['>=', '<=', '==', '>', '<']),
-                    default='>='
-                )
+            if package_name:
+                condition['package_name'] = package_name
+            if version:
+                condition['version'] = version
+            if release:
+                condition['release'] = release
 
-                version = click.prompt(
-                    'Enter the version (optional)',
-                    type=str,
-                    default=''
-                )
-
-                release = click.prompt(
-                    'Enter the release (optional)',
-                    type=str,
-                    default=''
-                )
-
-                condition = {
-                    'package_name': package_name,
-                    'condition': condition_exp,
-                }
-
-                if version:
-                    condition['version'] = version
-                elif release:
-                    condition['release'] = release
-
-                image_conditions.append(condition)
+            image_conditions.append(condition)
         else:
             break
 

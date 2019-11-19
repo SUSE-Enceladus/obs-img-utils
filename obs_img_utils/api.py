@@ -251,24 +251,25 @@ class OBSImageUtil(object):
 
     def check_image_conditions(self):
         self.image_status['packages'] = self.get_image_packages_metadata()
-        self.image_status['version'] = self._get_image_version()
+
+        version = self._get_image_version()
+        self.image_status['version'] = version.kiwi_version
+        self.image_status['release'] = version.obs_build
 
         for condition in self.image_status['conditions']:
-            if 'image' in condition:
-                if self.image_status['version'] == condition['image']:
-                    condition['status'] = True
-                else:
-                    self.log_callback.info(
-                        'Image version condition failed: '
-                        ' {cur_version} == {exp_version}'.format(
-                            cur_version=self.image_status['version'],
-                            exp_version=condition['image']
-                        )
-                    )
-                    condition['status'] = False
-            elif 'package_name' in condition:
+            if 'package_name' in condition:
                 if self._lookup_package(
                     self.image_status['packages'], condition
+                ):
+                    condition['status'] = True
+                else:
+                    condition['status'] = False
+            else:
+                if self._check_version_and_build_condition(
+                    condition,
+                    self.image_status['release'],
+                    self.image_status['version'],
+                    self.image_name
                 ):
                     condition['status'] = True
                 else:
@@ -349,9 +350,9 @@ class OBSImageUtil(object):
         # Extract image version information from .packages file name
         version = self._get_build_number(
             self.image_metadata_name
-        ).kiwi_version
+        )
 
-        if version == 'unknown':
+        if version.kiwi_version == 'unknown':
             raise OBSImageVersionException(
                 'No image version found using {formatter}. '
                 'Unexpected image name format: {name}'.format(
@@ -362,7 +363,7 @@ class OBSImageUtil(object):
 
         self.log_callback.debug(
             'Image version is {version}'.format(
-                version=version
+                version=version.kiwi_version
             )
         )
 
@@ -414,24 +415,38 @@ class OBSImageUtil(object):
             )
             return False
 
-        condition_eval = condition.get('condition', '>=')
         package_data = packages[package_name]
+        return self._check_version_and_build_condition(
+            condition,
+            package_data.release,
+            package_data.version,
+            package_name
+        )
+
+    def _check_version_and_build_condition(
+        self,
+        condition,
+        current_release,
+        current_version,
+        name
+    ):
+        condition_eval = condition.get('condition', '>=')
 
         if 'version' in condition:
             # we want to lookup a specific version
             match = self._version_compare(
-                package_data.version,
+                current_version,
                 condition['version'],
                 condition_eval
             )
 
             if not match:
                 self.log_callback.info(
-                    'Package version condition failed: '
-                    ' {name} {cur_version} {exp} {exp_version}'.format(
-                        name=package_name,
-                        cur_version=package_data.version,
-                        exp=condition_eval,
+                    'Version condition failed: '
+                    '{name} {cur_version} {eval} {exp_version}'.format(
+                        name=name,
+                        cur_version=current_version,
+                        eval=condition_eval,
                         exp_version=condition['version']
                     )
                 )
@@ -440,19 +455,19 @@ class OBSImageUtil(object):
         if 'release' in condition:
             # we want to lookup a specific release number
             match = self._version_compare(
-                package_data.release,
+                current_release,
                 condition['release'],
                 condition_eval
             )
 
             if not match:
                 self.log_callback.info(
-                    'Package release condition failed: '
-                    ' {name} {cur_version} {exp} {exp_version}'.format(
-                        name=package_name,
-                        cur_version=package_data.release,
-                        exp=condition_eval,
-                        exp_version=condition['release']
+                    'Release condition failed: '
+                    '{name} {cur_release} {eval} {exp_release}'.format(
+                        name=name,
+                        cur_release=current_release,
+                        eval=condition_eval,
+                        exp_release=condition['release']
                     )
                 )
                 return False

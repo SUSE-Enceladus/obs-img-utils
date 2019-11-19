@@ -161,10 +161,11 @@ def test_image_download(
             '--target-dir', 'tests/data/', '--add-conditions'
         ],
         input='y\n'
-              'image\n'
+              '\n'
+              '==\n'
               '1.0.0\n'
+              '\n'
               'y\n'
-              'package\n'
               'apparmor-parser\n'
               '\n'
               '2.12.2\n'
@@ -215,12 +216,15 @@ def test_image_download_failed_conditions(
             '--conditions-wait-time', '1'
         ],
         input='y\n'
-              'image\n'
+              '\n'
+              '==\n'
               '1.1.0\n'
+              '\n'
               'n\n'
     )
 
     assert result.exit_code == 1
-    assert 'Image version condition failed:  1.0.0 == 1.1.0' in result.output
+    assert 'Version condition failed: ' \
+           'openSUSE-Leap-15.0-Azure 1.0.0 == 1.1.0' in result.output
     assert 'ImageConditionsException: Image conditions not met' \
         in result.output
