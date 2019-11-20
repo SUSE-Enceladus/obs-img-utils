@@ -1,3 +1,8 @@
+v0.1.0 (2019-11-20)
+===================
+
+- Allow expressive image conditions similar to package conditions.
+
 v0.0.4 (2019-10-24)
 ===================
 
