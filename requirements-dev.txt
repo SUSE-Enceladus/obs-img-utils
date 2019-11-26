@@ -3,4 +3,3 @@
 bumpversion
 sphinx
 sphinx-click
-click-man

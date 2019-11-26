@@ -56,25 +56,6 @@ Source should pass flake8 and pycodestyle standards.
 $ flake8 obs_img_utils
 ```
 
-Man Pages
-=========
-
-If the CLI is changed the man pages can be auto-generated.
-
--   Install click-man
-    
-    ```shell
-    $ pip install click-man
-    ```
-
--   Generate man pages
-
-    ```shell
-    $ python3 setup.py \
-      --command-packages=click_man.commands man_pages \
-      --target man/man1
-    ```
-
 ## Signing Commits
 
 The repository and the code base patches sent for inclusion must be GPG
