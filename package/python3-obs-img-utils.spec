@@ -27,13 +27,14 @@ URL:            https://github.com/SUSE-Enceladus/obs-img-utils
 Source:         https://files.pythonhosted.org/packages/source/p/obs-img-utils/obs-img-utils-%{version}.tar.gz
 BuildRequires:  python3-devel
 BuildRequires:  python3-setuptools
+BuildRequires:  python3-click-man
+BuildRequires:  python3-click
 Requires:       python3-PyYAML
 Requires:       python3-click
 Requires:       python3-lxml
 BuildArch:      noarch
 %if %{with test}
 BuildRequires:  python3-PyYAML
-BuildRequires:  python3-click
 BuildRequires:  python3-lxml
 BuildRequires:  python3-coverage
 BuildRequires:  python3-pytest
@@ -54,6 +55,8 @@ Provides the following commands:
 
 %build
 python3 setup.py build
+mkdir -p man/man1
+python3 setup.py --command-packages=click_man.commands man_pages --target man/man1
 
 %install
 python3 setup.py install --prefix=%{_prefix} --root=%{buildroot}
