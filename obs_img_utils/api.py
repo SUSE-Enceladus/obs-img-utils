@@ -47,6 +47,7 @@ from obs_img_utils.utils import (
 from obs_img_utils.web_content import WebContent
 
 version_match = r'(.*)'
+kiwi_version_match = r'(\d\.\d\.\d)'
 
 package_type = namedtuple(
     'package_type', [
@@ -111,7 +112,7 @@ class OBSImageUtil(object):
 
         if profile:
             self.version_format = ''.join([
-                version_match,
+                kiwi_version_match,
                 '-',
                 profile,
                 '-',
@@ -120,7 +121,7 @@ class OBSImageUtil(object):
             ])
         else:
             self.version_format = ''.join([
-                version_match,
+                kiwi_version_match,
                 '-',
                 'Build',
                 version_match
