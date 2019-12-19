@@ -47,7 +47,7 @@ from obs_img_utils.utils import (
 from obs_img_utils.web_content import WebContent
 
 version_match = r'(.*)'
-kiwi_version_match = r'(\d\.\d\.\d)'
+kiwi_version_match = r'(\d+\.\d+\.\d+)'
 
 package_type = namedtuple(
     'package_type', [
