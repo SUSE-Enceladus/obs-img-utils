@@ -1,3 +1,10 @@
+v0.1.1 (2019-12-20)
+===================
+
+- Remove man pages from source.
+- Use explicit regex match for kiwi version.
+- Handle multiple digit versions with kiwi version.
+
 v0.1.0 (2019-11-20)
 ===================
 
