@@ -38,7 +38,7 @@ with open('requirements-dev.txt') as req_file:
 
 setup(
     name='obs-img-utils',
-    version='0.1.1',
+    version='0.1.2',
     description="Package provides utils for images in Open Build Service.",
     long_description=readme,
     long_description_content_type="text/markdown",
