@@ -322,6 +322,10 @@ def get_checksum_from_file(checksum_file):
     """
     with open(checksum_file, 'r') as f:
         lines = f.readlines()
+
+    try:
         expected_checksum = lines[3].strip().split()[0]
+    except IndexError:
+        expected_checksum = lines[0].strip().split()[0]
 
     return expected_checksum
