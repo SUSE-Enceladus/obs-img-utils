@@ -77,16 +77,60 @@ def test_packages_list(mock_temp_file, mock_retrieve, mock_url_open):
         main,
         [
             'packages', 'list',
+            '--filter-licenses',
             '--image-name', 'openSUSE-Leap-15.0-Azure',
             '--download-url',
             'https://provo-mirror.opensuse.org/repositories/'
             'Cloud:/Images:/Leap_15.0/images/',
             '--target-dir', 'tests/data'
-        ]
+        ],
+        input='y\n'
+              'MIT\n'
+              'n\n'
     )
     assert result.exit_code == 0
 
-    data = json.loads(result.output)
+    data = result.output.split('\n')
+    data = json.loads(''.join(data[3:]))
+
+    assert 'apparmor-parser' in data
+    assert data['apparmor-parser']['version'] == '2.12.2'
+    assert data['apparmor-parser']['release'] == 'lp150.6.14.1'
+    assert data['apparmor-parser']['arch'] == 'x86_64'
+
+
+@patch('obs_img_utils.web_content.urlopen')
+@patch('obs_img_utils.web_content.urlretrieve')
+@patch('obs_img_utils.api.NamedTemporaryFile')
+def test_filter_packages_list(mock_temp_file, mock_retrieve, mock_url_open):
+    packages_file = MagicMock()
+    packages_file.name = 'tests/data/packages'
+    mock_temp_file.return_value = packages_file
+
+    location = MagicMock()
+    location.read.return_value = urlopen_response
+    mock_url_open.return_value = location
+
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        [
+            'packages', 'list',
+            '--filter-packages',
+            '--image-name', 'openSUSE-Leap-15.0-Azure',
+            '--download-url',
+            'https://provo-mirror.opensuse.org/repositories/'
+            'Cloud:/Images:/Leap_15.0/images/',
+            '--target-dir', 'tests/data'
+        ],
+        input='y\n'
+              'apparmor-parser\n'
+              'n\n'
+    )
+    assert result.exit_code == 0
+
+    data = result.output.split('\n')
+    data = json.loads(''.join(data[3:]))
 
     assert 'apparmor-parser' in data
     assert data['apparmor-parser']['version'] == '2.12.2'
@@ -158,7 +202,8 @@ def test_image_download(
             '--download-url',
             'https://provo-mirror.opensuse.org/repositories/'
             'Cloud:/Images:/Leap_15.0/images/',
-            '--target-dir', 'tests/data/', '--add-conditions'
+            '--target-dir', 'tests/data/', '--add-conditions',
+            '--disallow-licenses', '--disallow-packages'
         ],
         input='y\n'
               '\n'
@@ -170,7 +215,13 @@ def test_image_download(
               '\n'
               '2.12.2\n'
               'lp150.6.14.1\n'
-              'n'
+              'n\n'
+              'y\n'
+              'GPL\n'
+              'n\n'
+              'y\n'
+              '*-mini\n'
+              'n\n'
     )
 
     assert result.exit_code == 0

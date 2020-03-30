@@ -57,4 +57,4 @@ def test_get_checksum_from_file():
 def test_get_hash_from_image():
     output = get_hash_from_image('tests/data/packages')
     assert output.hexdigest() == \
-        '0fe51e551cbfe0b217a4ab128cd34b26eb92add6ab1c8033ba2dcd831c4e5b52'
+        'f71d1050f3b3b1c02b3f420866e4539c9ab482d9a0497de4c40b9d3afbc99b55'
