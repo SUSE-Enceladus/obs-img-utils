@@ -397,14 +397,17 @@ class OBSImageUtil(object):
         result_packages = {}
         with open(packages_file.name) as packages:
             for package in packages.readlines():
+                # Packages file format:
+                # name|{empty}|version|release|arch|uri|license
                 package_digest = hashlib.md5()
                 package_digest.update(package.encode())
                 package_info = package.split('|')
                 package_name = package_info[0]
 
-                if len(package_info) == 7:
+                try:
+                    # license is optional in packages file
                     package_license = package_info[6].strip()
-                else:
+                except IndexError:
                     package_license = 'unknown'
 
                 package_result = package_type(
