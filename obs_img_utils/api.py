@@ -102,8 +102,8 @@ class OBSImageUtil(object):
         self.image_metadata_name = None
         self.image_checksum = None
         self.conditions = conditions
-        self.filter_licenses = filter_licenses
-        self.filter_packages = filter_packages
+        self.filter_licenses = filter_licenses if filter_licenses else []
+        self.filter_packages = filter_packages if filter_packages else []
 
         if checksum_extension:
             self.checksum_extensions = [checksum_extension]
