@@ -27,7 +27,11 @@ from obs_img_utils.utils import (
     echo_package,
     echo_packages,
     get_logger,
-    process_shared_options
+    process_shared_options,
+    license_repl,
+    packages_repl,
+    filter_packages_by_licenses,
+    filter_packages_by_name
 )
 from obs_img_utils.api import OBSImageUtil
 
@@ -159,6 +163,19 @@ def main(context):
     type=click.STRING,
     help='Image checksum file extension. Example: sha256'
 )
+@click.option(
+    '--disallow-licenses',
+    is_flag=True,
+    help='Invoke license REPL to specify any licenses that '
+         'should not be in the image.'
+)
+@click.option(
+    '--disallow-packages',
+    is_flag=True,
+    help='Invoke packages REPL to specify any packages which '
+         ' should not be in the image. This can use a wildcard'
+         ' (*) to match a naming pattern like "*-mini".'
+)
 @add_options(shared_options)
 @click.pass_context
 def download(
@@ -167,6 +184,8 @@ def download(
     conditions_wait_time,
     extension,
     checksum_extension,
+    disallow_licenses,
+    disallow_packages,
     **kwargs
 ):
     """
@@ -184,6 +203,14 @@ def download(
     if add_conditions:
         image_conditions = conditions_repl(config_data.no_color)
 
+    licenses = []
+    if disallow_licenses:
+        licenses = license_repl()
+
+    package_names = []
+    if disallow_packages:
+        package_names = packages_repl()
+
     with handle_errors(config_data.log_level, config_data.no_color):
         downloader = OBSImageUtil(
             config_data.download_url,
@@ -197,7 +224,9 @@ def download(
             log_callback=logger,
             report_callback=click_progress_callback,
             checksum_extension=config_data.checksum_extension,
-            extension=config_data.extension
+            extension=config_data.extension,
+            filter_licenses=licenses,
+            filter_packages=package_names
         )
         image_source = downloader.get_image()
 
@@ -214,15 +243,33 @@ def packages():
 
 
 @click.command(name='list')
+@click.option(
+    '--filter-licenses',
+    is_flag=True,
+    help='Invoke license REPL to specify license filters'
+)
+@click.option(
+    '--filter-packages',
+    is_flag=True,
+    help='Invoke packages REPL to specify package name filters'
+)
 @add_options(shared_options)
 @click.pass_context
-def list_packages(context, **kwargs):
+def list_packages(context, filter_licenses, filter_packages, **kwargs):
     """
     Return a list of packages for the given image name.
     """
     process_shared_options(context.obj, kwargs)
     config_data = get_config(context.obj)
     logger = get_logger(config_data.log_level)
+
+    licenses = []
+    if filter_licenses:
+        licenses = license_repl()
+
+    package_names = []
+    if filter_packages:
+        package_names = packages_repl()
 
     with handle_errors(config_data.log_level, config_data.no_color):
         downloader = OBSImageUtil(
@@ -236,10 +283,31 @@ def list_packages(context, **kwargs):
         )
         packages_metadata = downloader.get_image_packages_metadata()
 
-    echo_packages(
-        packages_metadata,
-        no_color=config_data.no_color
-    )
+    if licenses:
+        packages_metadata = filter_packages_by_licenses(
+            packages_metadata,
+            licenses
+        )
+
+    if package_names:
+        matching_packages = {}
+        for name in package_names:
+            matching_packages.update(
+                filter_packages_by_name(
+                    packages_metadata,
+                    name
+                )
+            )
+
+        packages_metadata = matching_packages
+
+    if not packages_metadata:
+        click.echo('No packages found matching criteria.')
+    else:
+        echo_packages(
+            packages_metadata,
+            no_color=config_data.no_color
+        )
 
 
 @click.command()

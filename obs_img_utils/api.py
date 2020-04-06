@@ -17,6 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import hashlib
+import fnmatch
 import logging
 import os
 import re
@@ -51,7 +52,7 @@ kiwi_version_match = r'(\d+\.\d+\.\d+)'
 
 package_type = namedtuple(
     'package_type', [
-        'version', 'release', 'arch', 'checksum'
+        'version', 'release', 'arch', 'license', 'checksum'
     ]
 )
 
@@ -79,7 +80,9 @@ class OBSImageUtil(object):
         log_callback=None,
         report_callback=None,
         checksum_extension=None,
-        extension=None
+        extension=None,
+        filter_licenses=None,
+        filter_packages=None
     ):
         if log_callback:
             self.log_callback = log_callback
@@ -99,6 +102,8 @@ class OBSImageUtil(object):
         self.image_metadata_name = None
         self.image_checksum = None
         self.conditions = conditions
+        self.filter_licenses = filter_licenses
+        self.filter_packages = filter_packages
 
         if checksum_extension:
             self.checksum_extensions = [checksum_extension]
@@ -279,6 +284,19 @@ class OBSImageUtil(object):
         if not self._image_conditions_complied():
             raise OBSImageConditionsException('Image conditions not met')
 
+    def check_license_conditions(self):
+        for package, pkg_data in self.image_status['packages'].items():
+            if pkg_data.license in self.filter_licenses:
+                raise OBSImageConditionsException(
+                    'Package(s) found in the image that match '
+                    'dis-allowed licenses. A full list can be provided'
+                    ' using "obs-img-utils packages list '
+                    '--filter-licenses"'.format(
+                        name=package,
+                        license=pkg_data.license
+                    )
+                )
+
     def _wait_on_image_conditions(self):
         start = time.time()
         end = start + self.conditions_wait_time
@@ -286,6 +304,8 @@ class OBSImageUtil(object):
         while True:
             try:
                 self.check_image_conditions()
+                self.check_license_conditions()
+                self.check_invalid_packages()
                 break
             except OBSImageConditionsException as error:
                 if time.time() < end:
@@ -377,14 +397,24 @@ class OBSImageUtil(object):
         result_packages = {}
         with open(packages_file.name) as packages:
             for package in packages.readlines():
+                # Packages file format:
+                # name|{empty}|version|release|arch|uri|license
                 package_digest = hashlib.md5()
                 package_digest.update(package.encode())
                 package_info = package.split('|')
                 package_name = package_info[0]
+
+                try:
+                    # license is optional in packages file
+                    package_license = package_info[6].strip()
+                except IndexError:
+                    package_license = 'unknown'
+
                 package_result = package_type(
                     version=package_info[2],
                     release=package_info[3],
                     arch=package_info[4],
+                    license=package_license,
                     checksum=package_digest.hexdigest()
                 )
                 result_packages[package_name] = package_result
@@ -423,6 +453,18 @@ class OBSImageUtil(object):
             package_data.version,
             package_name
         )
+
+    def check_invalid_packages(self):
+        for package_name in self.filter_packages:
+            if fnmatch.filter(self.image_status['packages'], package_name):
+                raise OBSImageConditionsException(
+                    'Package(s) matching {name} found in image. '
+                    'A full list of packages can be provided using '
+                    ' "obs-img-utils packages list '
+                    '--filter-packages"'.format(
+                        name=package_name
+                    )
+                )
 
     def _check_version_and_build_condition(
         self,

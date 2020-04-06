@@ -24,6 +24,7 @@ import os
 import sys
 import time
 import yaml
+import fnmatch
 
 from collections import ChainMap, namedtuple
 from contextlib import contextmanager, suppress
@@ -329,3 +330,66 @@ def get_checksum_from_file(checksum_file):
         expected_checksum = lines[0].strip().split()[0]
 
     return expected_checksum
+
+
+def license_repl():
+    """
+    Query and accept input for license types.
+    """
+    licenses = []
+    while True:
+        if click.confirm('Add another license?'):
+            license_name = click.prompt(
+                'Enter the license name (GPL-2.0-only)',
+                type=str
+            )
+            licenses.append(license_name)
+        else:
+            break
+
+    return licenses
+
+
+def packages_repl():
+    """
+    Query and accept input for invalid package names.
+    """
+    packages = []
+    while True:
+        if click.confirm('Add another package?'):
+            package_name = click.prompt(
+                'Enter the package name or wildcard (*-mini)',
+                type=str
+            )
+            packages.append(package_name)
+        else:
+            break
+
+    return packages
+
+
+def filter_packages_by_licenses(packages_metadata, licenses):
+    """
+    Returned a filtered dictionary of packages that matches the licenses.
+    """
+    matching_packages = {}
+    for package, pkg_data in packages_metadata.items():
+        if pkg_data.license in licenses:
+            matching_packages[package] = pkg_data
+
+    return matching_packages
+
+
+def filter_packages_by_name(packages_metadata, package_name):
+    """
+    Returned a filtered dictionary of packages that matches the package names.
+    """
+    matching_packages = {}
+
+    packages = packages_metadata.keys()
+    matching_names = fnmatch.filter(packages, package_name)
+
+    for name in matching_names:
+        matching_packages[name] = packages_metadata[name]
+
+    return matching_packages

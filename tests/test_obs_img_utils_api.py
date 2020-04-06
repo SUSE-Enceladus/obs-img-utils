@@ -68,6 +68,7 @@ class TestAPI(object):
             version='0.2',
             release='1.1',
             arch='x86_64',
+            license='MIT',
             checksum='ABC1234567890'
         )
         packages = {'test': package}
