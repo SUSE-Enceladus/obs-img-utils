@@ -40,6 +40,7 @@ extensions = [
     'qcow2'
 ]
 checksum_extensions = ['sha256']
+signature_extensions = ['asc']
 
 defaults = {
     'arch': 'x86_64',
@@ -53,7 +54,8 @@ defaults = {
     'conditions_wait_time': 0,
     'profile': None,
     'checksum_extension': None,
-    'extension': None
+    'extension': None,
+    'signature_extension': None,
 }
 
 img_downloader_config = namedtuple(

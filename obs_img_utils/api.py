@@ -43,7 +43,8 @@ from obs_img_utils.utils import (
     get_hash_from_image,
     get_checksum_from_file,
     extensions,
-    checksum_extensions
+    checksum_extensions,
+    signature_extensions
 )
 from obs_img_utils.web_content import WebContent
 
@@ -82,7 +83,8 @@ class OBSImageUtil(object):
         checksum_extension=None,
         extension=None,
         filter_licenses=None,
-        filter_packages=None
+        filter_packages=None,
+        signature_extension=None
     ):
         if log_callback:
             self.log_callback = log_callback
@@ -114,6 +116,11 @@ class OBSImageUtil(object):
             self.extensions = [extension]
         else:
             self.extensions = extensions
+
+        if signature_extension:
+            self.signature_extensions = [signature_extension]
+        else:
+            self.signature_extensions = signature_extensions
 
         if profile:
             self.version_format = ''.join([
@@ -218,6 +225,14 @@ class OBSImageUtil(object):
             self.base_regex,
             self.target_directory,
             self.checksum_extensions
+        )
+
+        # Download signature file if it is separate.
+        self.remote.fetch_to_dir(
+            name,
+            self.base_regex,
+            self.target_directory,
+            self.signature_extensions
         )
 
         if not image_checksum:

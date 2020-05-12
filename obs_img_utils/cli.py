@@ -226,7 +226,8 @@ def download(
             checksum_extension=config_data.checksum_extension,
             extension=config_data.extension,
             filter_licenses=licenses,
-            filter_packages=package_names
+            filter_packages=package_names,
+            signature_extension=config_data.signature_extension,
         )
         image_source = downloader.get_image()
 
