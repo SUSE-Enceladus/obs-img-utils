@@ -306,10 +306,7 @@ class OBSImageUtil(object):
                     'Package(s) found in the image that match '
                     'dis-allowed licenses. A full list can be provided'
                     ' using "obs-img-utils packages list '
-                    '--filter-licenses"'.format(
-                        name=package,
-                        license=pkg_data.license
-                    )
+                    '--filter-licenses"'
                 )
 
     def _wait_on_image_conditions(self):
