@@ -29,17 +29,17 @@ BuildRequires:  python3-devel
 BuildRequires:  python3-setuptools
 BuildRequires:  python3-click-man
 BuildRequires:  python3-click
-Requires:       python3-PyYAML
-Requires:       python3-click
-Requires:       python3-lxml
-BuildArch:      noarch
-%if %{with test}
 BuildRequires:  python3-PyYAML
 BuildRequires:  python3-lxml
+%if %{with test}
 BuildRequires:  python3-coverage
 BuildRequires:  python3-pytest
 BuildRequires:  python3-pytest-cov
 %endif
+Requires:       python3-PyYAML
+Requires:       python3-click
+Requires:       python3-lxml
+BuildArch:      noarch
 
 %description
 API and CLI utilities for images in OBS.
