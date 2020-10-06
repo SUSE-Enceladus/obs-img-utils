@@ -6,6 +6,7 @@ python:
   - "3.7"
 install:
   - pip install -e .[dev]
+  - pip install --upgrade pytest
 script:
   - pytest --cov=obs_img_utils
   - flake8 obs_img_utils
