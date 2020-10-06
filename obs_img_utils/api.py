@@ -22,6 +22,7 @@ import logging
 import os
 import re
 import time
+import xmltodict
 
 from collections import namedtuple
 from distutils.dir_util import mkpath
@@ -31,7 +32,7 @@ from urllib.error import ContentTooShortError, URLError
 
 from obs_img_utils.exceptions import (
     OBSImageDownloadException,
-    DownloadPackagesFileExceptionOBS,
+    DownloadMetadataFileExceptionOBS,
     OBSImageConditionsException,
     PackageVersionExceptionOBS,
     OBSImageChecksumException,
@@ -187,7 +188,12 @@ class OBSImageUtil(object):
                 url=self.download_url
             )
         )
+
+        # Metadata ext could be packages or report,
+        # Remove ext to get image base name.
         name = self.image_metadata_name.replace('.packages', '')
+        name = name.replace('.report', '')
+
         image_file = self.remote.fetch_to_dir(
             name,
             self.base_regex,
@@ -249,7 +255,7 @@ class OBSImageUtil(object):
     def _get_build_number(self, name):
         regex = r''.join([
             self.base_regex,
-            r'\.packages$'
+            r'\.(packages|report)$'
         ])
         build = re.search(regex, name)
 
@@ -271,8 +277,6 @@ class OBSImageUtil(object):
         return True
 
     def check_image_conditions(self):
-        self.image_status['packages'] = self.get_image_packages_metadata()
-
         version = self._get_image_version()
         self.image_status['version'] = version.kiwi_version
         self.image_status['release'] = version.obs_build
@@ -315,6 +319,8 @@ class OBSImageUtil(object):
 
         while True:
             try:
+                self.image_status['packages'] = \
+                    self.get_image_packages_metadata()
                 self.check_image_conditions()
                 self.check_license_conditions()
                 self.check_invalid_packages()
@@ -351,15 +357,15 @@ class OBSImageUtil(object):
         self._download_image()
         return self.image_status['image_source']
 
-    @retry(DownloadPackagesFileExceptionOBS)
-    def _download_packages_file(self, packages_file_name):
+    @retry(DownloadMetadataFileExceptionOBS)
+    def _download_metadata_file(self, packages_file_name, ext='report'):
         regex = r''.join([
             self.base_regex,
-            r'\.packages$'
+            r'\.{ext}$'.format(ext=ext)
         ])
 
         self.log_callback.debug(
-            'Fetching packages file for image {name} from {url}'.format(
+            'Fetching metadata file for image {name} from {url}'.format(
                 name=self.image_name,
                 url=self.download_url
             )
@@ -371,7 +377,7 @@ class OBSImageUtil(object):
         )
 
         if not self.image_metadata_name:
-            raise DownloadPackagesFileExceptionOBS(
+            raise DownloadMetadataFileExceptionOBS(
                 'No image metadata found matching: {regex}, '
                 'at {url}'.format(
                     regex=regex,
@@ -403,10 +409,41 @@ class OBSImageUtil(object):
         return version
 
     def get_image_packages_metadata(self):
-        packages_file = NamedTemporaryFile()
-        self._download_packages_file(packages_file.name)
+        metadata_file = NamedTemporaryFile()
 
+        try:
+            result_packages = self.parse_report_file(metadata_file)
+        except DownloadMetadataFileExceptionOBS:
+            result_packages = self.parse_packages_file(metadata_file)
+
+        return result_packages
+
+    def parse_report_file(self, report_file):
         result_packages = {}
+        self._download_metadata_file(report_file.name, 'report')
+
+        with open(report_file.name) as metadata_file:
+            metadata = xmltodict.parse(metadata_file.read())
+
+            for package in metadata['report']['binary']:
+                package_digest = hashlib.md5()
+                package_digest.update(str(package).encode())
+
+                package_result = package_type(
+                    version=package['@version'],
+                    release=package['@release'],
+                    arch=package['@arch'],
+                    license=package.get('@license', 'unknown'),
+                    checksum=package_digest.hexdigest()
+                )
+                result_packages[package['@name']] = package_result
+
+        return result_packages
+
+    def parse_packages_file(self, packages_file):
+        result_packages = {}
+        self._download_metadata_file(packages_file.name, 'packages')
+
         with open(packages_file.name) as packages:
             for package in packages.readlines():
                 # Packages file format:

@@ -35,7 +35,7 @@ class OBSImageUtilsException(Exception):
         return format(self.message)
 
 
-class DownloadPackagesFileExceptionOBS(OBSImageUtilsException):
+class DownloadMetadataFileExceptionOBS(OBSImageUtilsException):
     """
     Exception raised if there is an issue downloading packages file.
     """
