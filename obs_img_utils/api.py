@@ -27,7 +27,6 @@ import xmltodict
 from collections import namedtuple
 from distutils.dir_util import mkpath
 from pkg_resources import parse_version
-from tempfile import NamedTemporaryFile
 from urllib.error import ContentTooShortError, URLError
 
 from obs_img_utils.exceptions import (
@@ -357,33 +356,34 @@ class OBSImageUtil(object):
         self._download_image()
         return self.image_status['image_source']
 
-    @retry(DownloadMetadataFileExceptionOBS)
-    def _download_metadata_file(self, packages_file_name, ext='report'):
-        regex = r''.join([
-            self.base_regex,
-            r'\.{ext}$'.format(ext=ext)
-        ])
-
+    def _download_metadata_file(self, ext='report'):
         self.log_callback.debug(
-            'Fetching metadata file for image {name} from {url}'.format(
+            'Fetching {ext} metadata file for image {name} from {url}'.format(
+                ext=ext,
                 name=self.image_name,
                 url=self.download_url
             )
         )
-        self.image_metadata_name = self.remote.fetch_file(
+
+        self.image_metadata_file = self.remote.fetch_to_dir(
             self.image_name,
-            regex,
-            packages_file_name
+            self.base_regex,
+            self.target_directory,
+            [ext]
         )
 
-        if not self.image_metadata_name:
+        if not self.image_metadata_file:
             raise DownloadMetadataFileExceptionOBS(
                 'No image metadata found matching: {regex}, '
                 'at {url}'.format(
-                    regex=regex,
+                    regex=self.base_regex,
                     url=self.download_url
                 )
             )
+
+        self.image_metadata_name = self.image_metadata_file.rsplit(
+            os.sep, maxsplit=1
+        )[-1]
 
     def _get_image_version(self):
         # Extract image version information from .packages file name
@@ -408,21 +408,20 @@ class OBSImageUtil(object):
 
         return version
 
+    @retry(DownloadMetadataFileExceptionOBS)
     def get_image_packages_metadata(self):
-        metadata_file = NamedTemporaryFile()
-
         try:
-            result_packages = self.parse_report_file(metadata_file)
+            result_packages = self.parse_report_file()
         except DownloadMetadataFileExceptionOBS:
-            result_packages = self.parse_packages_file(metadata_file)
+            result_packages = self.parse_packages_file()
 
         return result_packages
 
-    def parse_report_file(self, report_file):
+    def parse_report_file(self):
         result_packages = {}
-        self._download_metadata_file(report_file.name, 'report')
+        self._download_metadata_file('report')
 
-        with open(report_file.name) as metadata_file:
+        with open(self.image_metadata_file) as metadata_file:
             metadata = xmltodict.parse(metadata_file.read())
 
             for package in metadata['report']['binary']:
@@ -440,11 +439,11 @@ class OBSImageUtil(object):
 
         return result_packages
 
-    def parse_packages_file(self, packages_file):
+    def parse_packages_file(self):
         result_packages = {}
-        self._download_metadata_file(packages_file.name, 'packages')
+        self._download_metadata_file('packages')
 
-        with open(packages_file.name) as packages:
+        with open(self.image_metadata_file) as packages:
             for package in packages.readlines():
                 # Packages file format:
                 # name|{empty}|version|release|arch|uri|license
