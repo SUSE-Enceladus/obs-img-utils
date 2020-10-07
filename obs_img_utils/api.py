@@ -53,7 +53,12 @@ kiwi_version_match = r'(\d+\.\d+\.\d+)'
 
 package_type = namedtuple(
     'package_type', [
-        'version', 'release', 'arch', 'license', 'checksum'
+        'name',
+        'version',
+        'release',
+        'arch',
+        'license',
+        'checksum'
     ]
 )
 
@@ -429,6 +434,7 @@ class OBSImageUtil(object):
                 package_digest.update(str(package).encode())
 
                 package_result = package_type(
+                    name=package['@name'],
                     version=package['@version'],
                     release=package['@release'],
                     arch=package['@arch'],
@@ -459,6 +465,7 @@ class OBSImageUtil(object):
                     package_license = 'unknown'
 
                 package_result = package_type(
+                    name=package_name,
                     version=package_info[2],
                     release=package_info[3],
                     arch=package_info[4],
