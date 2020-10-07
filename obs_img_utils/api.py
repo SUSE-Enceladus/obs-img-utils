@@ -164,6 +164,8 @@ class OBSImageUtil(object):
             'image_source': 'unknown',
             'packages': {},
             'version': 'unknown',
+            'release': 'unknown',
+            'buildtime': 'unknown',
             'conditions': []
         }
         if self.conditions:
@@ -428,6 +430,11 @@ class OBSImageUtil(object):
 
         with open(self.image_metadata_file) as metadata_file:
             metadata = xmltodict.parse(metadata_file.read())
+
+            self.image_status['buildtime'] = metadata['report'].get(
+                '@buildtime',
+                'unkown'
+            )
 
             for package in metadata['report']['binary']:
                 package_digest = hashlib.md5()
