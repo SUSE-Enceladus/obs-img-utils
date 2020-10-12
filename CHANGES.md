@@ -1,3 +1,10 @@
+v0.3.0 (2020-10-12)
+===================
+
+- Download signature file.
+- Fix build requires in spec file.
+- Handle xml report file from build service.
+
 v0.2.0 (2020-04-06)
 ===================
 
