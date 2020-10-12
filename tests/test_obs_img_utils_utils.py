@@ -49,12 +49,18 @@ def test_get_checksum_from_file():
         mock_open.return_value = MagicMock(spec=io.IOBase)
         file_handle = mock_open.return_value.__enter__.return_value
         file_handle.readlines.return_value = ['', '', '', 'ABC1234567890']
-        output = get_checksum_from_file('tests/data/packages')
+        output = get_checksum_from_file(
+            'tests/data/openSUSE-Leap-15.0-Azure'
+            '.x86_64-1.0.0-Build1.133.packages'
+        )
 
     assert output == 'ABC1234567890'
 
 
 def test_get_hash_from_image():
-    output = get_hash_from_image('tests/data/packages')
+    output = get_hash_from_image(
+        'tests/data/openSUSE-Leap-15.0-Azure'
+        '.x86_64-1.0.0-Build1.133.packages'
+    )
     assert output.hexdigest() == \
         'f71d1050f3b3b1c02b3f420866e4539c9ab482d9a0497de4c40b9d3afbc99b55'

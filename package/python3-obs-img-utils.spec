@@ -31,6 +31,7 @@ BuildRequires:  python3-click-man
 BuildRequires:  python3-click
 BuildRequires:  python3-PyYAML
 BuildRequires:  python3-lxml
+BuildRequires:  python3-xmltodict
 %if %{with test}
 BuildRequires:  python3-coverage
 BuildRequires:  python3-pytest
@@ -39,6 +40,7 @@ BuildRequires:  python3-pytest-cov
 Requires:       python3-PyYAML
 Requires:       python3-click
 Requires:       python3-lxml
+Requires:       python3-xmltodict
 BuildArch:      noarch
 
 %description

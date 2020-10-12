@@ -18,7 +18,9 @@
 
 import json
 
+from obs_img_utils.api import OBSImageUtil, WebContent
 from obs_img_utils.cli import main
+from obs_img_utils.exceptions import DownloadMetadataFileExceptionOBS
 
 from click.testing import CliRunner
 
@@ -61,12 +63,9 @@ def test_cli_subcommand_help(endpoint, value):
 
 
 @patch('obs_img_utils.web_content.urlopen')
-@patch('obs_img_utils.web_content.urlretrieve')
-@patch('obs_img_utils.api.NamedTemporaryFile')
-def test_packages_list(mock_temp_file, mock_retrieve, mock_url_open):
-    packages_file = MagicMock()
-    packages_file.name = 'tests/data/packages'
-    mock_temp_file.return_value = packages_file
+@patch.object(WebContent, 'fetch_to_dir')
+def test_packages_list(mock_fetch_file, mock_url_open):
+    mock_fetch_file.return_value = 'tests/data/report'
 
     location = MagicMock()
     location.read.return_value = urlopen_response
@@ -99,13 +98,20 @@ def test_packages_list(mock_temp_file, mock_retrieve, mock_url_open):
     assert data['apparmor-parser']['arch'] == 'x86_64'
 
 
+@patch.object(OBSImageUtil, 'parse_report_file')
 @patch('obs_img_utils.web_content.urlopen')
-@patch('obs_img_utils.web_content.urlretrieve')
-@patch('obs_img_utils.api.NamedTemporaryFile')
-def test_filter_packages_list(mock_temp_file, mock_retrieve, mock_url_open):
-    packages_file = MagicMock()
-    packages_file.name = 'tests/data/packages'
-    mock_temp_file.return_value = packages_file
+@patch.object(WebContent, 'fetch_to_dir')
+def test_filter_packages_list(
+    mock_fetch_file,
+    mock_url_open,
+    mock_parse_report_file
+):
+    mock_parse_report_file.side_effect = DownloadMetadataFileExceptionOBS(
+        'Not found!'
+    )
+
+    mock_fetch_file.return_value = \
+        'tests/data/openSUSE-Leap-15.0-Azure.x86_64-1.0.0-Build1.133.packages'
 
     location = MagicMock()
     location.read.return_value = urlopen_response
@@ -138,13 +144,20 @@ def test_filter_packages_list(mock_temp_file, mock_retrieve, mock_url_open):
     assert data['apparmor-parser']['arch'] == 'x86_64'
 
 
+@patch.object(OBSImageUtil, 'parse_report_file')
 @patch('obs_img_utils.web_content.urlopen')
-@patch('obs_img_utils.web_content.urlretrieve')
-@patch('obs_img_utils.api.NamedTemporaryFile')
-def test_packages_show(mock_temp_file, mock_retrieve, mock_url_open):
-    packages_file = MagicMock()
-    packages_file.name = 'tests/data/packages'
-    mock_temp_file.return_value = packages_file
+@patch.object(WebContent, 'fetch_to_dir')
+def test_packages_show(
+    mock_fetch_file,
+    mock_url_open,
+    mock_parse_report_file
+):
+    mock_parse_report_file.side_effect = DownloadMetadataFileExceptionOBS(
+        'Not found!'
+    )
+
+    mock_fetch_file.return_value = \
+        'tests/data/openSUSE-Leap-15.0-Azure.x86_64-1.0.0-Build1.133.packages'
 
     location = MagicMock()
     location.read.return_value = urlopen_response
@@ -175,14 +188,21 @@ def test_packages_show(mock_temp_file, mock_retrieve, mock_url_open):
 @patch('obs_img_utils.api.get_hash_from_image')
 @patch('obs_img_utils.web_content.urlopen')
 @patch('obs_img_utils.web_content.urlretrieve')
-@patch('obs_img_utils.api.NamedTemporaryFile')
+@patch.object(WebContent, 'fetch_to_dir')
 def test_image_download(
-    mock_temp_file, mock_retrieve, mock_url_open,
+    mock_fetch_file, mock_url_retrieve, mock_url_open,
     mock_get_hash_from_image, mock_get_checksum
 ):
-    packages_file = MagicMock()
-    packages_file.name = 'tests/data/packages'
-    mock_temp_file.return_value = packages_file
+    mock_fetch_file.side_effect = [
+        None,
+        'tests/data/'
+        'openSUSE-Leap-15.0-Azure.x86_64-1.0.0-Build1.133.packages',
+        'tests/data/'
+        'openSUSE-Leap-15.0-Azure.x86_64-1.0.0-Build1.133.vhdfixed.xz',
+        'tests/data/'
+        'openSUSE-Leap-15.0-Azure.x86_64-1.0.0-Build1.133.vhdfixed.xz.sha256',
+        None
+    ]
 
     location = MagicMock()
     location.read.return_value = urlopen_response
@@ -225,23 +245,27 @@ def test_image_download(
     )
 
     assert result.exit_code == 0
-    assert 'Image downloaded: tests/data//openSUSE-Leap-15.0-Azure.x86_64' \
+    assert 'Image downloaded: tests/data/openSUSE-Leap-15.0-Azure.x86_64' \
         '-1.0.0-Build1.133.vhdfixed.xz' in result.output
 
 
+@patch.object(OBSImageUtil, 'parse_report_file')
 @patch('obs_img_utils.api.time')
 @patch('obs_img_utils.api.get_checksum_from_file')
 @patch('obs_img_utils.api.get_hash_from_image')
 @patch('obs_img_utils.web_content.urlopen')
-@patch('obs_img_utils.web_content.urlretrieve')
-@patch('obs_img_utils.api.NamedTemporaryFile')
+@patch.object(WebContent, 'fetch_to_dir')
 def test_image_download_failed_conditions(
-    mock_temp_file, mock_retrieve, mock_url_open,
-    mock_get_hash_from_image, mock_get_checksum, mock_time
+    mock_fetch_file, mock_url_open,
+    mock_get_hash_from_image, mock_get_checksum, mock_time,
+    mock_parse_report_file
 ):
-    packages_file = MagicMock()
-    packages_file.name = 'tests/data/packages'
-    mock_temp_file.return_value = packages_file
+    mock_parse_report_file.side_effect = DownloadMetadataFileExceptionOBS(
+        'Not found!'
+    )
+
+    mock_fetch_file.return_value = \
+        'tests/data/openSUSE-Leap-15.0-Azure.x86_64-1.0.0-Build1.133.packages'
 
     location = MagicMock()
     location.read.return_value = urlopen_response

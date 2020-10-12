@@ -22,16 +22,16 @@ import logging
 import os
 import re
 import time
+import xmltodict
 
 from collections import namedtuple
 from distutils.dir_util import mkpath
 from pkg_resources import parse_version
-from tempfile import NamedTemporaryFile
 from urllib.error import ContentTooShortError, URLError
 
 from obs_img_utils.exceptions import (
     OBSImageDownloadException,
-    DownloadPackagesFileExceptionOBS,
+    DownloadMetadataFileExceptionOBS,
     OBSImageConditionsException,
     PackageVersionExceptionOBS,
     OBSImageChecksumException,
@@ -53,7 +53,12 @@ kiwi_version_match = r'(\d+\.\d+\.\d+)'
 
 package_type = namedtuple(
     'package_type', [
-        'version', 'release', 'arch', 'license', 'checksum'
+        'name',
+        'version',
+        'release',
+        'arch',
+        'license',
+        'checksum'
     ]
 )
 
@@ -159,6 +164,8 @@ class OBSImageUtil(object):
             'image_source': 'unknown',
             'packages': {},
             'version': 'unknown',
+            'release': 'unknown',
+            'buildtime': 'unknown',
             'conditions': []
         }
         if self.conditions:
@@ -187,7 +194,12 @@ class OBSImageUtil(object):
                 url=self.download_url
             )
         )
+
+        # Metadata ext could be packages or report,
+        # Remove ext to get image base name.
         name = self.image_metadata_name.replace('.packages', '')
+        name = name.replace('.report', '')
+
         image_file = self.remote.fetch_to_dir(
             name,
             self.base_regex,
@@ -249,7 +261,7 @@ class OBSImageUtil(object):
     def _get_build_number(self, name):
         regex = r''.join([
             self.base_regex,
-            r'\.packages$'
+            r'\.(packages|report)$'
         ])
         build = re.search(regex, name)
 
@@ -271,8 +283,6 @@ class OBSImageUtil(object):
         return True
 
     def check_image_conditions(self):
-        self.image_status['packages'] = self.get_image_packages_metadata()
-
         version = self._get_image_version()
         self.image_status['version'] = version.kiwi_version
         self.image_status['release'] = version.obs_build
@@ -315,6 +325,8 @@ class OBSImageUtil(object):
 
         while True:
             try:
+                self.image_status['packages'] = \
+                    self.get_image_packages_metadata()
                 self.check_image_conditions()
                 self.check_license_conditions()
                 self.check_invalid_packages()
@@ -351,33 +363,34 @@ class OBSImageUtil(object):
         self._download_image()
         return self.image_status['image_source']
 
-    @retry(DownloadPackagesFileExceptionOBS)
-    def _download_packages_file(self, packages_file_name):
-        regex = r''.join([
-            self.base_regex,
-            r'\.packages$'
-        ])
-
+    def _download_metadata_file(self, ext='report'):
         self.log_callback.debug(
-            'Fetching packages file for image {name} from {url}'.format(
+            'Fetching {ext} metadata file for image {name} from {url}'.format(
+                ext=ext,
                 name=self.image_name,
                 url=self.download_url
             )
         )
-        self.image_metadata_name = self.remote.fetch_file(
+
+        self.image_metadata_file = self.remote.fetch_to_dir(
             self.image_name,
-            regex,
-            packages_file_name
+            self.base_regex,
+            self.target_directory,
+            [ext]
         )
 
-        if not self.image_metadata_name:
-            raise DownloadPackagesFileExceptionOBS(
+        if not self.image_metadata_file:
+            raise DownloadMetadataFileExceptionOBS(
                 'No image metadata found matching: {regex}, '
                 'at {url}'.format(
-                    regex=regex,
+                    regex=self.base_regex,
                     url=self.download_url
                 )
             )
+
+        self.image_metadata_name = self.image_metadata_file.rsplit(
+            os.sep, maxsplit=1
+        )[-1]
 
     def _get_image_version(self):
         # Extract image version information from .packages file name
@@ -402,12 +415,48 @@ class OBSImageUtil(object):
 
         return version
 
+    @retry(DownloadMetadataFileExceptionOBS)
     def get_image_packages_metadata(self):
-        packages_file = NamedTemporaryFile()
-        self._download_packages_file(packages_file.name)
+        try:
+            result_packages = self.parse_report_file()
+        except DownloadMetadataFileExceptionOBS:
+            result_packages = self.parse_packages_file()
 
+        return result_packages
+
+    def parse_report_file(self):
         result_packages = {}
-        with open(packages_file.name) as packages:
+        self._download_metadata_file('report')
+
+        with open(self.image_metadata_file) as metadata_file:
+            metadata = xmltodict.parse(metadata_file.read())
+
+            self.image_status['buildtime'] = metadata['report'].get(
+                '@buildtime',
+                'unkown'
+            )
+
+            for package in metadata['report']['binary']:
+                package_digest = hashlib.md5()
+                package_digest.update(str(package).encode())
+
+                package_result = package_type(
+                    name=package['@name'],
+                    version=package['@version'],
+                    release=package['@release'],
+                    arch=package['@arch'],
+                    license=package.get('@license', 'unknown'),
+                    checksum=package_digest.hexdigest()
+                )
+                result_packages[package['@name']] = package_result
+
+        return result_packages
+
+    def parse_packages_file(self):
+        result_packages = {}
+        self._download_metadata_file('packages')
+
+        with open(self.image_metadata_file) as packages:
             for package in packages.readlines():
                 # Packages file format:
                 # name|{empty}|version|release|arch|uri|license
@@ -423,6 +472,7 @@ class OBSImageUtil(object):
                     package_license = 'unknown'
 
                 package_result = package_type(
+                    name=package_name,
                     version=package_info[2],
                     release=package_info[3],
                     arch=package_info[4],

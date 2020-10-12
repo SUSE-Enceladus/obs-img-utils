@@ -48,15 +48,6 @@ class WebContent(object):
         )
         return sorted(list(set(index_list)))
 
-    def fetch_file(self, base_name, regex, target_file):
-        for name in self.fetch_index_list(base_name):
-            if re.match(regex, name):
-                urlretrieve(
-                    os.sep.join([self.uri, name]),
-                    target_file
-                )
-                return name
-
     def fetch_to_dir(
         self,
         base_name,

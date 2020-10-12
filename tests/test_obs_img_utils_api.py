@@ -65,6 +65,7 @@ class TestAPI(object):
         assert result is False
 
         package = package_type(
+            name='test',
             version='0.2',
             release='1.1',
             arch='x86_64',

@@ -47,3 +47,4 @@ Requirements
 - Click
 - lxml
 - PyYaml
+- xmltodict
