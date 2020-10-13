@@ -23,8 +23,8 @@ Release:        0
 Summary:        API and CLI utilities for images in OBS
 License:        GPL-3.0-or-later
 Group:          Development/Languages/Python
-URL:            https://github.com/SUSE-Enceladus/obs-img-utils
-Source:         https://files.pythonhosted.org/packages/source/p/obs-img-utils/obs-img-utils-%{version}.tar.gz
+Url:            https://github.com/SUSE-Enceladus/obs-img-utils
+Source:         https://files.pythonhosted.org/packages/source/o/obs-img-utils/obs-img-utils-%{version}.tar.gz
 BuildRequires:  python3-devel
 BuildRequires:  python3-setuptools
 BuildRequires:  python3-click-man
@@ -53,7 +53,7 @@ Provides the following commands:
 - Get version info for a specific package
 
 %prep
-%setup -q
+%setup -q -n obs-img-utils-%{version}
 
 %build
 python3 setup.py build
