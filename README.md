@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/SUSE-Enceladus/obs-img-utils.svg?branch=master)](https://travis-ci.com/SUSE-Enceladus/obs-img-utils)
+![Continuous testing & Linting](https://github.com/SUSE-Enceladus/obs-img-utils/workflows/Continuous%20testing%20&%20Linting/badge.svg?branch=master)
 [![Documentation Status](https://readthedocs.org/projects/obs-img-utils/badge/?version=latest)](https://obs-img-utils.readthedocs.io/en/latest/?badge=latest)
 [![Py Versions](https://img.shields.io/pypi/pyversions/obs-img-utils.svg)](https://pypi.org/project/obs-img-utils/)
 [![License](https://img.shields.io/pypi/l/obs-img-utils.svg)](https://pypi.org/project/obs-img-utils/)
