@@ -36,8 +36,4 @@ The following options are currently available in the configuration file:
 *no_color*
   If set to *True* removes ANSI color and styling from output.
 
-*verify*
-  Verify SSL Certificate. This is *True* by default. Can be *True*,
-  *False* or a */path/to/certfile/* used in verification.
-
 .. _docs: https://docs.python.org/3/library/logging.html#levels
