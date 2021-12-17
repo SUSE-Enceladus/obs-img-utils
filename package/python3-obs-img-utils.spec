@@ -25,6 +25,7 @@ License:        GPL-3.0-or-later
 Group:          Development/Languages/Python
 Url:            https://github.com/SUSE-Enceladus/obs-img-utils
 Source:         https://files.pythonhosted.org/packages/source/o/obs-img-utils/obs-img-utils-%{version}.tar.gz
+BuildRequires:  python-rpm-macros
 BuildRequires:  python3-devel
 BuildRequires:  python3-setuptools
 BuildRequires:  python3-click-man
