@@ -528,6 +528,9 @@ class OBSImageUtil(object):
                     )
                 )
 
+    def _combine_version(self, version, release):
+        return '.'.join([version, release])
+
     def _check_version_and_build_condition(
         self,
         condition,
@@ -537,41 +540,67 @@ class OBSImageUtil(object):
     ):
         condition_eval = condition.get('condition', '>=')
 
-        if 'version' in condition:
+        if 'version' in condition and 'release' in condition:
+            combined_version = self._combine_version(
+                current_version,
+                current_release
+            )
+            expected_version = self._combine_version(
+                condition['version'],
+                condition['release']
+            )
+
+            condition_is_valid = self._version_compare(
+                combined_version,
+                expected_version,
+                condition_eval
+            )
+
+            if not condition_is_valid:
+                self.log_callback.info(
+                    'Condition failed: '
+                    '{name} {cur_version} {cond_eval} {exp_version}'.format(
+                        name=name,
+                        cur_version=combined_version,
+                        cond_eval=condition_eval,
+                        exp_version=expected_version
+                    )
+                )
+                return False
+        elif 'version' in condition:
             # we want to lookup a specific version
-            match = self._version_compare(
+            condition_is_valid = self._version_compare(
                 current_version,
                 condition['version'],
                 condition_eval
             )
 
-            if not match:
+            if not condition_is_valid:
                 self.log_callback.info(
                     'Version condition failed: '
-                    '{name} {cur_version} {eval} {exp_version}'.format(
+                    '{name} {cur_version} {cond_eval} {exp_version}'.format(
                         name=name,
                         cur_version=current_version,
-                        eval=condition_eval,
+                        cond_eval=condition_eval,
                         exp_version=condition['version']
                     )
                 )
                 return False
-
-        if 'release' in condition:
+        elif 'release' in condition:
             # we want to lookup a specific release number
-            match = self._version_compare(
+            condition_is_valid = self._version_compare(
                 current_release,
                 condition['release'],
                 condition_eval
             )
 
-            if not match:
+            if not condition_is_valid:
                 self.log_callback.info(
                     'Release condition failed: '
-                    '{name} {cur_release} {eval} {exp_release}'.format(
+                    '{name} {cur_release} {cond_eval} {exp_release}'.format(
                         name=name,
                         cur_release=current_release,
-                        eval=condition_eval,
+                        cond_eval=condition_eval,
                         exp_release=condition['release']
                     )
                 )
