@@ -1,3 +1,8 @@
+v0.4.0 (2022-01-10)
+===================
+
+- Better handling for combined release and version conditions.
+
 v0.3.2 (2021-12-17)
 ===================
 
