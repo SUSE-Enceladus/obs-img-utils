@@ -176,6 +176,11 @@ def main(context):
          ' should not be in the image. This can use a wildcard'
          ' (*) to match a naming pattern like "*-mini".'
 )
+@click.option(
+    '--skip-checksum-validation',
+    is_flag=True,
+    help='Skip the image checksum validation.'
+)
 @add_options(shared_options)
 @click.pass_context
 def download(
@@ -186,6 +191,7 @@ def download(
     checksum_extension,
     disallow_licenses,
     disallow_packages,
+    skip_checksum_validation,
     **kwargs
 ):
     """
@@ -228,6 +234,7 @@ def download(
             filter_licenses=licenses,
             filter_packages=package_names,
             signature_extension=config_data.signature_extension,
+            skip_checksum_validation=skip_checksum_validation
         )
         image_source = downloader.get_image()
 
