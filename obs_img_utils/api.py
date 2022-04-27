@@ -638,9 +638,9 @@ class OBSImageUtil(object):
 
     def reset_base_file_name(self):
         """
-        If base file name is reset a new version may exist
+        If base file name is reset a new image version may exist
 
-        Clear out out version, extension and packages data.
+        Clear out all variables to force reload.
         """
         self.image_metadata_file = None
         self._base_file_name = None
