@@ -89,7 +89,8 @@ class OBSImageUtil(object):
         extension=None,
         filter_licenses=None,
         filter_packages=None,
-        signature_extension=None
+        signature_extension=None,
+        skip_checksum_validation=False
     ):
         if log_callback:
             self.log_callback = log_callback
@@ -101,13 +102,21 @@ class OBSImageUtil(object):
         self.download_url = download_url
         self.image_name = image_name
         self.conditions_wait_time = conditions_wait_time
+        self.skip_checksum_validation = skip_checksum_validation
 
         self.arch = arch
         self.target_directory = os.path.expanduser(
             target_directory or defaults['target_dir']
         )
-        self.image_metadata_name = None
+        self.image_metadata_file = None
+        self._base_file_name = None
+        self.image_ext = None
         self.image_checksum = None
+        self.image_source = None
+        self._image_release = None
+        self._image_version = None
+        self.build_time = 'unknown'
+        self._packages = {}
         self.conditions = conditions
         self.filter_licenses = filter_licenses if filter_licenses else []
         self.filter_packages = filter_packages if filter_packages else []
@@ -126,6 +135,15 @@ class OBSImageUtil(object):
             self.signature_extensions = [signature_extension]
         else:
             self.signature_extensions = signature_extensions
+
+        if self.conditions or self.filter_licenses or self.filter_packages:
+            self.has_conditions = True
+        else:
+            self.has_conditions = False
+
+        if self.conditions:
+            for condition in self.conditions:
+                condition['status'] = None
 
         if profile:
             self.version_format = ''.join([
@@ -155,24 +173,6 @@ class OBSImageUtil(object):
 
         self.remote = WebContent(self.download_url)
         self.report_callback = report_callback
-        self.image_status = self._init_status()
-
-    def _init_status(self):
-        image_status = {
-            'name': self.image_name,
-            'job_status': 'prepared',
-            'image_source': 'unknown',
-            'packages': {},
-            'version': 'unknown',
-            'release': 'unknown',
-            'buildtime': 'unknown',
-            'conditions': []
-        }
-        if self.conditions:
-            for condition in self.conditions:
-                condition['status'] = None
-            image_status['conditions'] = self.conditions
-        return image_status
 
     @retry((
             ContentTooShortError,
@@ -186,7 +186,8 @@ class OBSImageUtil(object):
         """
         mkpath(self.target_directory)
 
-        self._wait_on_image_conditions()
+        if self.has_conditions:
+            self._wait_on_image_conditions()
 
         self.log_callback.debug(
             'Fetching image {name} from {url}'.format(
@@ -195,38 +196,35 @@ class OBSImageUtil(object):
             )
         )
 
-        # Metadata ext could be packages or report,
-        # Remove ext to get image base name.
-        name = self.image_metadata_name.replace('.packages', '')
-        name = name.replace('.report', '')
-
         image_file = self.remote.fetch_to_dir(
-            name,
+            self.base_file_name,
             self.base_regex,
             self.target_directory,
-            self.extensions,
+            [self.image_ext],
             self.report_callback
         )
 
         if not image_file:
             raise OBSImageDownloadException(
                 'No images found that match {name} at {url}'.format(
-                    name=name,
+                    name=self.base_regex,
                     url=self.download_url
                 )
             )
 
-        expected_checksum = self._get_image_checksum(name)
+        if not self.skip_checksum_validation:
+            expected_checksum = self._get_image_checksum(self.base_file_name)
 
-        image_hash = get_hash_from_image(image_file)
+            image_hash = get_hash_from_image(image_file)
 
-        if image_hash.hexdigest() != expected_checksum:
-            raise OBSImageChecksumException(
-                'Image checksum does not match expected value'
-            )
+            if image_hash.hexdigest() != expected_checksum:
+                raise OBSImageChecksumException(
+                    'Image checksum does not match expected value'
+                )
 
-        self.image_checksum = expected_checksum
-        self.image_status['image_source'] = image_file
+            self.image_checksum = expected_checksum
+
+        self.image_source = image_file
 
     def _get_image_checksum(self, name=None):
         self.log_callback.debug('Fetching image checksum')
@@ -261,7 +259,7 @@ class OBSImageUtil(object):
     def _get_build_number(self, name):
         regex = r''.join([
             self.base_regex,
-            r'\.(packages|report)$'
+            r'\.$'
         ])
         build = re.search(regex, name)
 
@@ -277,20 +275,22 @@ class OBSImageUtil(object):
             )
 
     def _image_conditions_complied(self):
-        for condition in self.image_status['conditions']:
+        for condition in self.conditions:
             if condition['status'] is not True:
                 return False
         return True
 
-    def check_image_conditions(self):
-        version = self._get_image_version()
-        self.image_status['version'] = version.kiwi_version
-        self.image_status['release'] = version.obs_build
+    def check_all_conditions(self):
+        self.check_image_conditions()
+        self.check_license_conditions()
+        self.check_invalid_packages()
 
-        for condition in self.image_status['conditions']:
+    def check_image_conditions(self):
+        for condition in self.conditions:
             if 'package_name' in condition:
                 if self._lookup_package(
-                    self.image_status['packages'], condition
+                    self.packages,
+                    condition
                 ):
                     condition['status'] = True
                 else:
@@ -298,8 +298,8 @@ class OBSImageUtil(object):
             else:
                 if self._check_version_and_build_condition(
                     condition,
-                    self.image_status['release'],
-                    self.image_status['version'],
+                    self.image_release,
+                    self.image_version,
                     self.image_name
                 ):
                     condition['status'] = True
@@ -310,7 +310,7 @@ class OBSImageUtil(object):
             raise OBSImageConditionsException('Image conditions not met')
 
     def check_license_conditions(self):
-        for package, pkg_data in self.image_status['packages'].items():
+        for package, pkg_data in self.packages.items():
             if pkg_data.license in self.filter_licenses:
                 raise OBSImageConditionsException(
                     'Package(s) found in the image that match '
@@ -325,11 +325,7 @@ class OBSImageUtil(object):
 
         while True:
             try:
-                self.image_status['packages'] = \
-                    self.get_image_packages_metadata()
-                self.check_image_conditions()
-                self.check_license_conditions()
-                self.check_invalid_packages()
+                self.check_all_conditions()
                 break
             except OBSImageConditionsException as error:
                 if time.time() < end:
@@ -340,6 +336,7 @@ class OBSImageUtil(object):
                             wait=wait
                         )
                     )
+                    self.reset_base_file_name()
                     time.sleep(wait)
                 else:
                     raise
@@ -361,19 +358,19 @@ class OBSImageUtil(object):
 
     def get_image(self):
         self._download_image()
-        return self.image_status['image_source']
+        return self.image_source
 
-    def _download_metadata_file(self, ext='report'):
+    def download_metadata_file(self, ext='report'):
         self.log_callback.debug(
             'Fetching {ext} metadata file for image {name} from {url}'.format(
                 ext=ext,
-                name=self.image_name,
+                name=self.base_file_name,
                 url=self.download_url
             )
         )
 
         self.image_metadata_file = self.remote.fetch_to_dir(
-            self.image_name,
+            self.base_file_name,
             self.base_regex,
             self.target_directory,
             [ext]
@@ -388,22 +385,16 @@ class OBSImageUtil(object):
                 )
             )
 
-        self.image_metadata_name = self.image_metadata_file.rsplit(
-            os.sep, maxsplit=1
-        )[-1]
-
-    def _get_image_version(self):
+    def _set_image_version(self):
         # Extract image version information from .packages file name
-        version = self._get_build_number(
-            self.image_metadata_name
-        )
+        version = self._get_build_number(self.base_file_name)
 
         if version.kiwi_version == 'unknown':
             raise OBSImageVersionException(
                 'No image version found using {formatter}. '
                 'Unexpected image name format: {name}'.format(
                     formatter=self.version_format,
-                    name=self.image_metadata_name
+                    name=self.base_file_name
                 )
             )
 
@@ -413,7 +404,8 @@ class OBSImageUtil(object):
             )
         )
 
-        return version
+        self._image_version = version.kiwi_version
+        self._image_release = version.obs_build
 
     @retry(DownloadMetadataFileExceptionOBS)
     def get_image_packages_metadata(self):
@@ -426,14 +418,14 @@ class OBSImageUtil(object):
 
     def parse_report_file(self):
         result_packages = {}
-        self._download_metadata_file('report')
+        self.download_metadata_file('report')
 
         with open(self.image_metadata_file) as metadata_file:
             metadata = xmltodict.parse(metadata_file.read())
 
-            self.image_status['buildtime'] = metadata['report'].get(
+            self.build_time = metadata['report'].get(
                 '@buildtime',
-                'unkown'
+                'unknown'
             )
 
             for package in metadata['report']['binary']:
@@ -454,7 +446,7 @@ class OBSImageUtil(object):
 
     def parse_packages_file(self):
         result_packages = {}
-        self._download_metadata_file('packages')
+        self.download_metadata_file('packages')
 
         with open(self.image_metadata_file) as packages:
             for package in packages.readlines():
@@ -484,6 +476,9 @@ class OBSImageUtil(object):
         return result_packages
 
     def _version_compare(self, current, expected, condition):
+        if not current:
+            current = 'unknown'
+
         if condition == '>=':
             return parse_version(current) >= parse_version(expected)
         elif condition == '<=':
@@ -518,7 +513,7 @@ class OBSImageUtil(object):
 
     def check_invalid_packages(self):
         for package_name in self.filter_packages:
-            if fnmatch.filter(self.image_status['packages'], package_name):
+            if fnmatch.filter(self.packages, package_name):
                 raise OBSImageConditionsException(
                     'Package(s) matching {name} found in image. '
                     'A full list of packages can be provided using '
@@ -529,7 +524,7 @@ class OBSImageUtil(object):
                 )
 
     def _combine_version(self, version, release):
-        return '.'.join([version, release])
+        return '.'.join(filter(None, [version, release])) or 'unknown'
 
     def _check_version_and_build_condition(
         self,
@@ -607,3 +602,57 @@ class OBSImageUtil(object):
                 return False
 
         return True
+
+    @property
+    def base_file_name(self):
+        if not self._base_file_name:
+            self._base_file_name, self.image_ext = self.remote.fetch_file_name(
+                self.image_name,
+                self.base_regex,
+                self.extensions
+            )
+
+            if not self._base_file_name:
+                raise OBSImageVersionException(
+                    'No images found that match {name} at {url}'.format(
+                        name=self.base_regex,
+                        url=self.download_url
+                    )
+                )
+
+        return self._base_file_name
+
+    @property
+    def image_version(self):
+        if not self._image_version:
+            self._set_image_version()
+
+        return self._image_version
+
+    @property
+    def image_release(self):
+        if not self._image_release:
+            self._set_image_version()
+
+        return self._image_release
+
+    def reset_base_file_name(self):
+        """
+        If base file name is reset a new image version may exist
+
+        Clear out all variables to force reload.
+        """
+        self.image_metadata_file = None
+        self._base_file_name = None
+        self.image_ext = None
+        self._image_version = None
+        self._image_release = None
+        self.build_time = 'unknown'
+        self._packages = {}
+
+    @property
+    def packages(self):
+        if not self._packages:
+            self._packages = self.get_image_packages_metadata()
+
+        return self._packages

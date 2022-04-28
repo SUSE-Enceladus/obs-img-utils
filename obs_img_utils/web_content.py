@@ -76,3 +76,14 @@ class WebContent(object):
                             callback(0, 0, 0, True)
 
                     return target_file
+
+    def fetch_file_name(
+        self,
+        base_name,
+        regex,
+        extensions
+    ):
+        for name in self.fetch_index_list(base_name):
+            for extension in extensions:
+                if name.endswith(extension) and re.match(regex, name):
+                    return name.replace(extension, ''), extension
