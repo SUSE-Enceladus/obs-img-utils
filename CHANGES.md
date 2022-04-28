@@ -1,3 +1,22 @@
+v1.0.0 (2022-04-28)
+===================
+
+- Only check conditions if there are conditions to check
+- Only download image metadata file if conditions exist or packages
+  variable accessed
+- Make packages a separate lazy variable so conditions methods can
+  be called separately
+- Pull base file name from image name instead of requiring image
+  metadata file
+- Make image version and release lazy properties instead of
+  dictionary keys
+- Checksum validation can be skipped
+- Remove image_status dictionary and move remaining keys to
+  instance variables
+- Add check_all_conditions convenience method
+- Add a function to fetch file name from download server based
+  on regex match
+
 v0.4.0 (2022-01-10)
 ===================
 
