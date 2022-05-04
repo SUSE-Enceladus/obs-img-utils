@@ -173,6 +173,7 @@ class OBSImageUtil(object):
 
         self.remote = WebContent(self.download_url)
         self.report_callback = report_callback
+        mkpath(self.target_directory)
 
     @retry((
             ContentTooShortError,
@@ -184,8 +185,6 @@ class OBSImageUtil(object):
         """
         Download image and shasum to given file.
         """
-        mkpath(self.target_directory)
-
         if self.has_conditions:
             self._wait_on_image_conditions()
 
