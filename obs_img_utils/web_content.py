@@ -87,3 +87,5 @@ class WebContent(object):
             for extension in extensions:
                 if name.endswith(extension) and re.match(regex, name):
                     return name.replace(extension, ''), extension
+
+        return None, None
