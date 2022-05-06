@@ -1,3 +1,9 @@
+v1.0.1 (2022-05-06)
+===================
+
+- Move mkpath call to the init method
+- Use a consistent return type of tuple in fetch_file_name function
+
 v1.0.0 (2022-04-28)
 ===================
 
