@@ -117,9 +117,9 @@ class OBSImageUtil(object):
         self._image_version = None
         self.build_time = 'unknown'
         self._packages = {}
-        self.conditions = conditions
-        self.filter_licenses = filter_licenses if filter_licenses else []
-        self.filter_packages = filter_packages if filter_packages else []
+        self.conditions = conditions or []
+        self.filter_licenses = filter_licenses or []
+        self.filter_packages = filter_packages or []
 
         if checksum_extension:
             self.checksum_extensions = [checksum_extension]
