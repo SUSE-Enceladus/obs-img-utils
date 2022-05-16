@@ -1,3 +1,9 @@
+v1.0.2 (2022-05-16)
+===================
+
+- Set conditions to empty list if no conditions
+- Simplify the filter defaults using or condition
+
 v1.0.1 (2022-05-06)
 ===================
 
