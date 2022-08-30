@@ -35,6 +35,7 @@ module = sys.modules[__name__]
 default_config = os.path.expanduser('~/.config/obs_img_utils/config.yaml')
 extensions = [
     'vhdfixed.xz',
+    'vhdfixed',
     'raw.xz',
     'tar.gz',
     'qcow2'
