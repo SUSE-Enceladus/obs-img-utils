@@ -39,14 +39,15 @@ class WebContent(object):
         )
 
     def fetch_index_list(self, base_name):
-        request = Request(self.uri)
-        location = urlopen(request)
-        tree = html.fromstring(location.read())
-        index_list = tree.xpath(
-            '//a[starts-with(@href, "{0}")]/@href'.format(base_name),
-            namespaces=self.namespace_map
-        )
-        return sorted(list(set(index_list)))
+        index_list = self._manage_fetch_index_list(base_name)
+        if not index_list:
+            # Newer OBS web interface prefixes links with "./"
+            # Trying it out in case index_list is empty
+            index_list = self._manage_fetch_index_list(
+                base_name,
+                href_prefix='./'
+                )
+        return index_list
 
     def fetch_to_dir(
         self,
@@ -89,3 +90,26 @@ class WebContent(object):
                     return name.replace(extension, ''), extension
 
         return None, None
+
+    def _manage_fetch_index_list(self, base_name, href_prefix=''):
+        request = Request(self.uri)
+        location = urlopen(request)
+        tree = html.fromstring(location.read())
+        xpath_filter = '//a[starts-with(@href, "{0}")]/@href'.format(
+                href_prefix + base_name
+            )
+        index_list = tree.xpath(
+            xpath_filter,
+            namespaces=self.namespace_map
+        )
+
+        new_index_list = []
+
+        if href_prefix:
+            pref_len = len(href_prefix)
+            for myindex in index_list:
+                new_index_list.append(myindex[pref_len:])
+        else:
+            new_index_list = index_list
+
+        return sorted(list(set(new_index_list)))
