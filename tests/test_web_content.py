@@ -33,3 +33,15 @@ def test_fetch_to_dir(mock_url_retrieve):
         'tests/data',
         ['packages'])
     assert name == 'tests/data/SLES15-SP1-GCE.x86_64-1.0.2-Build1.6.packages'
+
+
+@patch('obs_img_utils.web_content.urlretrieve')
+def test_fetch_to_dir_new_web(mock_url_retrieve):
+    path = os.path.abspath('tests/data/index_new.html')
+    wc = WebContent('file://{0}'.format(path))
+    name = wc.fetch_to_dir(
+        'SLES15-SP1-GCE',
+        '^SLES15-SP1-GCE\\.x86_64-(\\d+\\.\\d+\\.\\d+)-Build(.*)',
+        'tests/data',
+        ['packages'])
+    assert name == 'tests/data/SLES15-SP1-GCE.x86_64-1.0.2-Build1.6.packages'
