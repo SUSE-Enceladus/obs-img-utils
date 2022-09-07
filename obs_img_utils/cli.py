@@ -50,16 +50,10 @@ shared_options = [
     ),
     click.option(
         '--debug',
+        '--verbose',
         'log_level',
         flag_value=logging.DEBUG,
         help='Display debug level logging to console.'
-    ),
-    click.option(
-        '--verbose',
-        'log_level',
-        flag_value=logging.INFO,
-        default=True,
-        help='Display logging info to console. (Default)'
     ),
     click.option(
         '--quiet',
