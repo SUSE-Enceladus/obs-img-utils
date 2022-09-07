@@ -46,7 +46,7 @@ class WebContent(object):
             index_list = self._manage_fetch_index_list(
                 base_name,
                 href_prefix='./'
-                )
+            )
         return index_list
 
     def fetch_to_dir(
