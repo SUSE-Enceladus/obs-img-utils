@@ -307,6 +307,7 @@ def echo_packages_text(data, no_color):
             fg='green')
     )
 
+
 def echo_packages_json(data, no_color):
     """
     Echoes list of package info to terminal in json format.
