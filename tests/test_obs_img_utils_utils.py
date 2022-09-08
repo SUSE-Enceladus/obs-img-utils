@@ -23,7 +23,8 @@ from unittest.mock import patch, MagicMock
 
 from obs_img_utils.utils import (
     retry,
-    echo_package,
+    echo_package_json,
+    echo_package_text,
     get_checksum_from_file,
     get_hash_from_image
 )
@@ -40,8 +41,12 @@ def test_retry_decorator(mock_time):
         fake_method()
 
 
-def test_echo_package():
-    echo_package('package', {}, False)
+def test_echo_package_text():
+    echo_package_text('package', {}, False)
+
+
+def test_echo_package_json():
+    echo_package_json('package', {}, False)
 
 
 def test_get_checksum_from_file():

@@ -29,6 +29,7 @@ import fnmatch
 from collections import ChainMap, namedtuple
 from contextlib import contextmanager, suppress
 from functools import wraps
+from tabulate import tabulate
 
 module = sys.modules[__name__]
 
@@ -57,6 +58,7 @@ defaults = {
     'checksum_extension': None,
     'extension': None,
     'signature_extension': None,
+    'output': 'text'
 }
 
 img_downloader_config = namedtuple(
@@ -238,11 +240,12 @@ def style_string(message, no_color, fg='yellow'):
         return click.style(message, fg=fg)
 
 
-def echo_package(name, data, no_color):
+def echo_package_text(name, data, no_color):
     """
     Echoes package info to terminal based on name.
     """
     try:
+        headers = ["name", "version", "release", "arch", "license", "checksum"]
         package_info = data[name]
     except KeyError:
         echo_style(
@@ -250,6 +253,33 @@ def echo_package(name, data, no_color):
             no_color,
             fg='red'
         )
+    else:
+        values = []
+        values.append([*package_info._asdict().values()])
+        click.echo(
+            style_string(
+                tabulate(values, headers),
+                no_color,
+                fg='green'
+            )
+        )
+
+
+def echo_package_json(name, data, no_color):
+    """
+    Echoes package info to terminal based on name in json format.
+    """
+    try:
+        package_info = data[name]
+    except KeyError:
+        click.echo(
+            style_string(
+                json.dumps({}),
+                no_color,
+                fg='red'
+            )
+        )
+
     else:
         click.echo(
             style_string(
@@ -260,9 +290,26 @@ def echo_package(name, data, no_color):
         )
 
 
-def echo_packages(data, no_color):
+def echo_packages_text(data, no_color):
     """
-    Echoes list of package info to terminal.
+    Echoes list of package info to terminal in text format.
+    """
+    headers = ["name", "version", "release", "arch", "license", "checksum"]
+
+    values = []
+    for name, inner in data.items():
+        values.append([*inner._asdict().values()])
+
+    click.echo(
+        style_string(
+            tabulate(values, headers),
+            no_color,
+            fg='green')
+    )
+
+def echo_packages_json(data, no_color):
+    """
+    Echoes list of package info to terminal in json format.
     """
     packages = {}
     for name, info in data.items():
