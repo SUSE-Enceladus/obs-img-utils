@@ -217,6 +217,10 @@ def download(
     if disallow_packages:
         package_names = packages_repl()
 
+    cli_report_callback = None
+    if config_data.log_level < logging.WARNING:
+        cli_report_callback = click_progress_callback
+
     with handle_errors(config_data.log_level, config_data.no_color):
         downloader = OBSImageUtil(
             config_data.download_url,
@@ -228,7 +232,7 @@ def download(
             log_level=config_data.log_level,
             conditions_wait_time=config_data.conditions_wait_time,
             log_callback=logger,
-            report_callback=click_progress_callback,
+            report_callback=cli_report_callback,
             checksum_extension=config_data.checksum_extension,
             extension=config_data.extension,
             filter_licenses=licenses,
@@ -238,7 +242,7 @@ def download(
         )
         image_source = downloader.get_image()
 
-    click.echo(
+    logger.info(
         'Image downloaded: {img_source}'.format(img_source=image_source)
     )
 
