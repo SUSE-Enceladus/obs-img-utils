@@ -2,4 +2,3 @@ click
 lxml
 pyyaml
 xmltodict
-tabulate

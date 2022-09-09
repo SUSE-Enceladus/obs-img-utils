@@ -29,7 +29,6 @@ import fnmatch
 from collections import ChainMap, namedtuple
 from contextlib import contextmanager, suppress
 from functools import wraps
-from tabulate import tabulate
 
 module = sys.modules[__name__]
 
@@ -240,7 +239,7 @@ def style_string(message, no_color, fg='yellow'):
         return click.style(message, fg=fg)
 
 
-def echo_package_text(name, data, no_color):
+def echo_package_text(name, data, no_color, no_headers=False):
     """
     Echoes package info to terminal based on name.
     """
@@ -258,11 +257,79 @@ def echo_package_text(name, data, no_color):
         values.append([*package_info._asdict().values()])
         click.echo(
             style_string(
-                tabulate(values, headers),
+                _get_text_table(values, headers, no_headers),
                 no_color,
                 fg='green'
             )
         )
+
+
+def _get_text_table(data, headers, no_headers=False):
+    widths = _get_text_column_widths(headers, data)
+
+    if no_headers is False:
+        table = _get_headersline(headers, widths) + "\n"
+        table += _get_separatorline(widths) + "\n"
+    for d in data:
+        table += _get_dataline(d, widths)
+        table += "\n"
+    return table
+
+
+def _get_headersline(headers, widths):
+    """
+    Function to get the headers line for text output formatting
+    """
+    line = ""
+    for idx, value in enumerate(headers):
+        line += _padright(widths[idx], value)
+        line += " "
+    return line
+
+
+def _get_separatorline(widths):
+    """
+    Function to get the separator line for text output formatting
+    """
+    line = ""
+    for width in widths:
+        line += "-" * width
+        line += " "
+    return line
+
+
+def _get_dataline(data, widths):
+    """
+    Function to get the a line with data for text output formatting
+    """
+    line = ""
+    for idx, s in enumerate(data):
+        line += _padright(widths[idx], str(s))
+        line += " "
+    return line
+
+
+def _padright(width, s):
+    """
+    Function to get a right padded string of width s
+    """
+    fmt = "{0:<%ds}" % width
+    return fmt.format(s)
+
+
+def _get_text_column_widths(headers, values):
+    """
+    Function to get the column with required for text formatting
+    """
+    widths = []
+    for header in headers:
+        widths.append(len(str(header)))
+
+    for value in values:
+        for idx, val in enumerate(value):
+            if len(str(val)) > widths[idx]:
+                widths[idx] = len(str(val))
+    return widths
 
 
 def echo_package_json(name, data, no_color):
@@ -290,7 +357,7 @@ def echo_package_json(name, data, no_color):
         )
 
 
-def echo_packages_text(data, no_color):
+def echo_packages_text(data, no_color, no_headers=False):
     """
     Echoes list of package info to terminal in text format.
     """
@@ -302,7 +369,7 @@ def echo_packages_text(data, no_color):
 
     click.echo(
         style_string(
-            tabulate(values, headers),
+            _get_text_table(values, headers, no_headers),
             no_color,
             fg='green')
     )

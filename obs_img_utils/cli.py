@@ -267,9 +267,22 @@ def packages():
     help='The output format (text|json)',
     default='text'
 )
+@click.option(
+    '--no-headers',
+    is_flag=True,
+    help='Do not print headers in text output',
+    default=False
+)
 @add_options(shared_options)
 @click.pass_context
-def list_packages(context, filter_licenses, filter_packages, output, **kwargs):
+def list_packages(
+        context,
+        filter_licenses,
+        filter_packages,
+        output,
+        no_headers,
+        **kwargs
+):
     """
     Return a list of packages for the given image name.
     """
@@ -323,7 +336,8 @@ def list_packages(context, filter_licenses, filter_packages, output, **kwargs):
     else:
         echo_packages_text(
             packages_metadata,
-            no_color=config_data.no_color
+            no_color=config_data.no_color,
+            no_headers=no_headers
         )
 
 
@@ -340,9 +354,15 @@ def list_packages(context, filter_licenses, filter_packages, output, **kwargs):
     help='The output format (text|json)',
     default='text'
 )
+@click.option(
+    '--no-headers',
+    is_flag=True,
+    help='Do not print headers in text output',
+    default=False
+)
 @add_options(shared_options)
 @click.pass_context
-def show(context, package_name, output, **kwargs):
+def show(context, package_name, output, no_headers, **kwargs):
     """
     Return information for the provided package name in the given image.
     """
@@ -372,7 +392,8 @@ def show(context, package_name, output, **kwargs):
         echo_package_text(
             package_name,
             packages_metadata,
-            no_color=config_data.no_color
+            no_color=config_data.no_color,
+            no_headers=no_headers
         )
 
 
