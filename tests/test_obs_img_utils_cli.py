@@ -225,7 +225,7 @@ def test_image_download(
             '--download-url',
             'https://provo-mirror.opensuse.org/repositories/'
             'Cloud:/Images:/Leap_15.0/images/',
-            '--target-dir', 'tests/data/', '--add-conditions',
+            '--target-dir', 'tests/data/', '--add-conditions-interactive',
             '--disallow-licenses', '--disallow-packages'
         ],
         input='y\n'
@@ -290,7 +290,7 @@ def test_image_download_failed_conditions(
             '--download-url',
             'https://provo-mirror.opensuse.org/repositories/'
             'Cloud:/Images:/Leap_15.0/images/',
-            '--target-dir', 'tests/data/', '--add-conditions',
+            '--target-dir', 'tests/data/', '--add-conditions-interactive',
             '--conditions-wait-time', '1'
         ],
         input='y\n'

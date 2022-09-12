@@ -511,3 +511,22 @@ def filter_packages_by_name(packages_metadata, package_name):
         matching_packages[name] = packages_metadata[name]
 
     return matching_packages
+
+
+def get_condition_list_from_file(filename, logger):
+    """
+    Creates the conditions objects from a file with json dump.
+    """
+    with open(filename, 'r') as file:
+        data = json.load(file)
+
+    if type(data) != list:
+        msg = f'Loaded conditions from {filename} but not '
+        msg += 'in list format! Converting it...'
+
+        logger.warning(msg)
+        condition_list = []
+        condition_list.append(data)
+        return condition_list
+
+    return data

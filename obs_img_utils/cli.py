@@ -29,6 +29,7 @@ from obs_img_utils.utils import (
     echo_packages_json,
     echo_packages_text,
     get_logger,
+    get_condition_list_from_file,
     process_shared_options,
     license_repl,
     packages_repl,
@@ -136,7 +137,7 @@ def main(context):
 
 @click.command()
 @click.option(
-    '--add-conditions',
+    '--add-conditions-interactive',
     is_flag=True,
     help='Invoke conditions process to specify conditions '
          'for image'
@@ -177,17 +178,25 @@ def main(context):
     is_flag=True,
     help='Skip the image checksum validation.'
 )
+@click.option(
+    '--add-conditions-file',
+    type=click.STRING,
+    help='Specify conditions for the image from a file (witht the conditions '
+         'in json format as a LIST)',
+    default=''
+)
 @add_options(shared_options)
 @click.pass_context
 def download(
     context,
-    add_conditions,
+    add_conditions_interactive,
     conditions_wait_time,
     extension,
     checksum_extension,
     disallow_licenses,
     disallow_packages,
     skip_checksum_validation,
+    add_conditions_file,
     **kwargs
 ):
     """
@@ -202,8 +211,13 @@ def download(
     logger = get_logger(config_data.log_level)
 
     image_conditions = []
-    if add_conditions:
+    if add_conditions_interactive:
         image_conditions = conditions_repl(config_data.no_color)
+
+    if add_conditions_file:
+        image_conditions.extend(
+            get_condition_list_from_file(add_conditions_file, logger)
+        )
 
     licenses = []
     if disallow_licenses:

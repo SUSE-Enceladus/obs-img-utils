@@ -1,0 +1,13 @@
+[
+  {
+    "condition": ">=",
+    "release": "1",
+    "version": "1"
+  },
+  {
+    "package_name": "zypper",
+    "condition": ">=",
+    "version": "1.14.56"
+  }
+
+]

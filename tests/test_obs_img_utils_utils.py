@@ -18,6 +18,7 @@
 
 import collections
 import io
+import logging
 
 from contextlib import suppress
 from unittest.mock import patch, MagicMock
@@ -29,6 +30,8 @@ from obs_img_utils.utils import (
     echo_packages_text,
     get_checksum_from_file,
     get_hash_from_image,
+    get_condition_list_from_file,
+    get_logger
 )
 
 
@@ -147,3 +150,43 @@ def test_echo_package_text(capsys):
     assert expected_header in captured.out
     assert expected_separator in captured.out
     assert expected_data1 in captured.out
+
+
+def test_get_conditions_list_from_file():
+    logger = get_logger(logging.INFO)
+    condition1 = {
+        'condition': '>=',
+        'release': '1',
+        'version': '1'
+    }
+    condition2 = {
+        'package_name': 'zypper',
+        'condition': '>=',
+        'version': '1.14.56'
+    }
+
+    expected_conditions = []
+    expected_conditions.append(condition1)
+    expected_conditions.append(condition2)
+
+    filename = './tests/data/example_conditions.json'
+    conditions = get_condition_list_from_file(filename, logger)
+    assert type(conditions) == list
+    assert conditions == expected_conditions
+
+
+def test_get_conditions_list_from_file_not_list():
+    logger = get_logger(logging.INFO)
+    condition1 = {
+        'condition': '>=',
+        'release': '1',
+        'version': '1'
+    }
+
+    expected_conditions = []
+    expected_conditions.append(condition1)
+
+    filename = './tests/data/example_conditions_not_list.json'
+    conditions = get_condition_list_from_file(filename, logger)
+    assert type(conditions) == list
+    assert conditions == expected_conditions
