@@ -81,7 +81,8 @@ def test_packages_list(mock_fetch_file, mock_url_open):
             '--download-url',
             'https://provo-mirror.opensuse.org/repositories/'
             'Cloud:/Images:/Leap_15.0/images/',
-            '--target-dir', 'tests/data'
+            '--target-dir', 'tests/data',
+            '--output', 'json'
         ],
         input='y\n'
               'MIT\n'
@@ -127,7 +128,8 @@ def test_filter_packages_list(
             '--download-url',
             'https://provo-mirror.opensuse.org/repositories/'
             'Cloud:/Images:/Leap_15.0/images/',
-            '--target-dir', 'tests/data'
+            '--target-dir', 'tests/data',
+            "--output", "json"
         ],
         input='y\n'
               'apparmor-parser\n'
@@ -173,7 +175,8 @@ def test_packages_show(
             'https://provo-mirror.opensuse.org/repositories/'
             'Cloud:/Images:/Leap_15.0/images/',
             '--target-dir', 'tests/data',
-            '--package-name', 'apparmor-parser'
+            '--package-name', 'apparmor-parser',
+            '--output', 'json'
         ]
     )
     assert result.exit_code == 0

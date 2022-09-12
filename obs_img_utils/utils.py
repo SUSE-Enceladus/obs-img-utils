@@ -57,6 +57,7 @@ defaults = {
     'checksum_extension': None,
     'extension': None,
     'signature_extension': None,
+    'output': 'text'
 }
 
 img_downloader_config = namedtuple(
@@ -238,11 +239,12 @@ def style_string(message, no_color, fg='yellow'):
         return click.style(message, fg=fg)
 
 
-def echo_package(name, data, no_color):
+def echo_package_text(name, data, no_color, no_headers=False):
     """
     Echoes package info to terminal based on name.
     """
     try:
+        headers = ["name", "version", "release", "arch", "license", "checksum"]
         package_info = data[name]
     except KeyError:
         echo_style(
@@ -250,6 +252,101 @@ def echo_package(name, data, no_color):
             no_color,
             fg='red'
         )
+    else:
+        values = []
+        values.append([*package_info._asdict().values()])
+        click.echo(
+            style_string(
+                _get_text_table(values, headers, no_headers),
+                no_color,
+                fg='green'
+            )
+        )
+
+
+def _get_text_table(data, headers, no_headers=False):
+    widths = _get_text_column_widths(headers, data)
+
+    if no_headers is False:
+        table = _get_headersline(headers, widths) + "\n"
+        table += _get_separatorline(widths) + "\n"
+    for item in data:
+        table += _get_dataline(item, widths)
+        table += "\n"
+    return table
+
+
+def _get_headersline(headers, widths):
+    """
+    Function to get the headers line for text output formatting
+    """
+    line = ""
+    for idx, value in enumerate(headers):
+        line += _padright(widths[idx], value)
+        line += " "
+    return line
+
+
+def _get_separatorline(widths):
+    """
+    Function to get the separator line for text output formatting
+    """
+    line = ""
+    for width in widths:
+        line += "-" * width
+        line += " "
+    return line
+
+
+def _get_dataline(data, widths):
+    """
+    Function to get the a line with data for text output formatting
+    """
+    line = ""
+    for idx, s in enumerate(data):
+        line += _padright(widths[idx], str(s))
+        line += " "
+    return line
+
+
+def _padright(width, s):
+    """
+    Function to get a right padded string of width s
+    """
+    fmt = "{0:<%ds}" % width
+    return fmt.format(s)
+
+
+def _get_text_column_widths(headers, values):
+    """
+    Function to get the column with required for text formatting
+    """
+    widths = []
+    for header in headers:
+        widths.append(len(str(header)))
+
+    for value in values:
+        for idx, val in enumerate(value):
+            if len(str(val)) > widths[idx]:
+                widths[idx] = len(str(val))
+    return widths
+
+
+def echo_package_json(name, data, no_color):
+    """
+    Echoes package info to terminal based on name in json format.
+    """
+    try:
+        package_info = data[name]
+    except KeyError:
+        click.echo(
+            style_string(
+                json.dumps({}),
+                no_color,
+                fg='red'
+            )
+        )
+
     else:
         click.echo(
             style_string(
@@ -260,9 +357,27 @@ def echo_package(name, data, no_color):
         )
 
 
-def echo_packages(data, no_color):
+def echo_packages_text(data, no_color, no_headers=False):
     """
-    Echoes list of package info to terminal.
+    Echoes list of package info to terminal in text format.
+    """
+    headers = ["name", "version", "release", "arch", "license", "checksum"]
+
+    values = []
+    for name, inner in data.items():
+        values.append([*inner._asdict().values()])
+
+    click.echo(
+        style_string(
+            _get_text_table(values, headers, no_headers),
+            no_color,
+            fg='green')
+    )
+
+
+def echo_packages_json(data, no_color):
+    """
+    Echoes list of package info to terminal in json format.
     """
     packages = {}
     for name, info in data.items():

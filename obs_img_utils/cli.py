@@ -24,8 +24,10 @@ from obs_img_utils.utils import (
     click_progress_callback,
     conditions_repl,
     handle_errors,
-    echo_package,
-    echo_packages,
+    echo_package_json,
+    echo_package_text,
+    echo_packages_json,
+    echo_packages_text,
     get_logger,
     process_shared_options,
     license_repl,
@@ -259,9 +261,28 @@ def packages():
     is_flag=True,
     help='Invoke packages REPL to specify package name filters'
 )
+@click.option(
+    '--output',
+    type=click.Choice(['text', 'json']),
+    help='The output format (text|json)',
+    default='text'
+)
+@click.option(
+    '--no-headers',
+    is_flag=True,
+    help='Do not print headers in text output',
+    default=False
+)
 @add_options(shared_options)
 @click.pass_context
-def list_packages(context, filter_licenses, filter_packages, **kwargs):
+def list_packages(
+        context,
+        filter_licenses,
+        filter_packages,
+        output,
+        no_headers,
+        **kwargs
+):
     """
     Return a list of packages for the given image name.
     """
@@ -307,12 +328,16 @@ def list_packages(context, filter_licenses, filter_packages, **kwargs):
 
         packages_metadata = matching_packages
 
-    if not packages_metadata:
-        click.echo('No packages found matching criteria.')
-    else:
-        echo_packages(
+    if output == 'json':
+        echo_packages_json(
             packages_metadata,
             no_color=config_data.no_color
+        )
+    else:
+        echo_packages_text(
+            packages_metadata,
+            no_color=config_data.no_color,
+            no_headers=no_headers
         )
 
 
@@ -323,9 +348,21 @@ def list_packages(context, filter_licenses, filter_packages, **kwargs):
     required=True,
     help='Name of the package.'
 )
+@click.option(
+    '--output',
+    type=click.Choice(["text", "json"]),
+    help='The output format (text|json)',
+    default='text'
+)
+@click.option(
+    '--no-headers',
+    is_flag=True,
+    help='Do not print headers in text output',
+    default=False
+)
 @add_options(shared_options)
 @click.pass_context
-def show(context, package_name, **kwargs):
+def show(context, package_name, output, no_headers, **kwargs):
     """
     Return information for the provided package name in the given image.
     """
@@ -345,11 +382,19 @@ def show(context, package_name, **kwargs):
         )
         packages_metadata = downloader.get_image_packages_metadata()
 
-    echo_package(
-        package_name,
-        packages_metadata,
-        no_color=config_data.no_color
-    )
+    if output == 'json':
+        echo_package_json(
+            package_name,
+            packages_metadata,
+            no_color=config_data.no_color
+        )
+    else:
+        echo_package_text(
+            package_name,
+            packages_metadata,
+            no_color=config_data.no_color,
+            no_headers=no_headers
+        )
 
 
 main.add_command(download)
