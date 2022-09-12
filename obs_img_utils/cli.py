@@ -263,7 +263,7 @@ def packages():
 )
 @click.option(
     '--output',
-    type=click.Choice(["text", "json"]),
+    type=click.Choice(['text', 'json']),
     help='The output format (text|json)',
     default='text'
 )

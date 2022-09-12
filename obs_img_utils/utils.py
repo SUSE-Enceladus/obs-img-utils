@@ -270,8 +270,8 @@ def _get_text_table(data, headers, no_headers=False):
     if no_headers is False:
         table = _get_headersline(headers, widths) + "\n"
         table += _get_separatorline(widths) + "\n"
-    for d in data:
-        table += _get_dataline(d, widths)
+    for item in data:
+        table += _get_dataline(item, widths)
         table += "\n"
     return table
 

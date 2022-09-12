@@ -82,7 +82,7 @@ def test_packages_list(mock_fetch_file, mock_url_open):
             'https://provo-mirror.opensuse.org/repositories/'
             'Cloud:/Images:/Leap_15.0/images/',
             '--target-dir', 'tests/data',
-            "--output", "json"
+            '--output', 'json'
         ],
         input='y\n'
               'MIT\n'
