@@ -1,0 +1,13 @@
+[
+  {
+    "condition": ">=",
+    "release": "1",
+    "version": "0.0"
+  },
+  {
+    "package_name": "apparmor-parser",
+    "condition": ">=",
+    "version": "2.12.2"
+  }
+
+]
