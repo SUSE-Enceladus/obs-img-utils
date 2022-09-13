@@ -530,3 +530,21 @@ def get_condition_list_from_file(filename, logger):
         return condition_list
 
     return data
+
+
+def get_condition_list_from_arg(json_string, logger):
+    """
+    Creates the conditions objects from a json dump as string.
+    """
+    data = json.loads(json_string)
+
+    if type(data) != list:
+        msg = 'Loaded conditions from CLI arg but not '
+        msg += 'in list format! Converting it...'
+
+        logger.warning(msg)
+        condition_list = []
+        condition_list.append(data)
+        return condition_list
+
+    return data

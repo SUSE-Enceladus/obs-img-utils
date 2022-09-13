@@ -30,6 +30,7 @@ from obs_img_utils.utils import (
     echo_packages_text,
     get_logger,
     get_condition_list_from_file,
+    get_condition_list_from_arg,
     process_shared_options,
     license_repl,
     packages_repl,
@@ -185,6 +186,13 @@ def main(context):
          'in json format as a LIST)',
     default=''
 )
+@click.option(
+    '--add-conditions-json',
+    type=click.STRING,
+    help='Specify conditions for the image from a CLI arg (witht the '
+         'conditions in json format as a LIST as a single string)',
+    default=''
+)
 @add_options(shared_options)
 @click.pass_context
 def download(
@@ -197,6 +205,7 @@ def download(
     disallow_packages,
     skip_checksum_validation,
     add_conditions_file,
+    add_conditions_json,
     **kwargs
 ):
     """
@@ -217,6 +226,11 @@ def download(
     if add_conditions_file:
         image_conditions.extend(
             get_condition_list_from_file(add_conditions_file, logger)
+        )
+
+    if add_conditions_json:
+        image_conditions.extend(
+            get_condition_list_from_arg(add_conditions_json, logger)
         )
 
     licenses = []
