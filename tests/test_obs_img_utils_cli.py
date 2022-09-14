@@ -608,3 +608,291 @@ def test_image_download_conditions_from_arg(
     assert result.exit_code == 0
     assert 'Image downloaded: tests/data/openSUSE-Leap-15.0-Azure.x86_64' \
         '-1.0.0-Build1.133.vhdfixed.xz' in result.output
+
+
+@patch.object(OBSImageUtil, 'parse_report_file')
+@patch('obs_img_utils.api.time')
+@patch('obs_img_utils.api.get_checksum_from_file')
+@patch('obs_img_utils.api.get_hash_from_image')
+@patch('obs_img_utils.web_content.urlopen')
+@patch.object(WebContent, 'fetch_to_dir')
+def test_conditions_check_failed_conditions(
+    mock_fetch_file, mock_url_open,
+    mock_get_hash_from_image, mock_get_checksum, mock_time,
+    mock_parse_report_file
+):
+    mock_parse_report_file.side_effect = DownloadMetadataFileExceptionOBS(
+        'Not found!'
+    )
+
+    mock_fetch_file.return_value = \
+        'tests/data/openSUSE-Leap-15.0-Azure.x86_64-1.0.0-Build1.133.packages'
+
+    location = MagicMock()
+    location.read.return_value = urlopen_response
+    mock_url_open.return_value = location
+
+    hash_val = MagicMock()
+    hash_val.hexdigest.return_value = 'ABC1234567890'
+    mock_get_hash_from_image.return_value = hash_val
+    mock_get_checksum.return_value = 'ABC1234567890'
+
+    mock_time.time.side_effect = [0, 0, 1]
+
+    cond_string = '[{"package_name": "apparmor-parser","condition":">=",'
+    cond_string += '"version": "2.13"}]'
+
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        [
+            'check-conditions',
+            '--image-name', 'openSUSE-Leap-15.0-Azure',
+            '--download-url',
+            'https://provo-mirror.opensuse.org/repositories/'
+            'Cloud:/Images:/Leap_15.0/images/',
+            '--add-conditions-json', cond_string
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert 'Version condition failed: apparmor-parser 2.12.2 >= 2.13' \
+        in result.output
+    assert 'Image conditions not met' in result.output
+
+
+@patch.object(OBSImageUtil, 'parse_report_file')
+@patch('obs_img_utils.api.time')
+@patch('obs_img_utils.api.get_checksum_from_file')
+@patch('obs_img_utils.api.get_hash_from_image')
+@patch('obs_img_utils.web_content.urlopen')
+@patch.object(WebContent, 'fetch_to_dir')
+def test_conditions_check_conditions_ok(
+    mock_fetch_file, mock_url_open,
+    mock_get_hash_from_image, mock_get_checksum, mock_time,
+    mock_parse_report_file
+):
+    mock_parse_report_file.side_effect = DownloadMetadataFileExceptionOBS(
+        'Not found!'
+    )
+
+    mock_fetch_file.return_value = \
+        'tests/data/openSUSE-Leap-15.0-Azure.x86_64-1.0.0-Build1.133.packages'
+
+    location = MagicMock()
+    location.read.return_value = urlopen_response
+    mock_url_open.return_value = location
+
+    hash_val = MagicMock()
+    hash_val.hexdigest.return_value = 'ABC1234567890'
+    mock_get_hash_from_image.return_value = hash_val
+    mock_get_checksum.return_value = 'ABC1234567890'
+
+    mock_time.time.side_effect = [0, 0, 1]
+
+    cond_string = '[{"package_name": "apparmor-parser","condition":">=",'
+    cond_string += '"version": "2.10"}]'
+
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        [
+            'check-conditions',
+            '--image-name', 'openSUSE-Leap-15.0-Azure',
+            '--download-url',
+            'https://provo-mirror.opensuse.org/repositories/'
+            'Cloud:/Images:/Leap_15.0/images/',
+            '--add-conditions-json', cond_string
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert 'All conditions provided are met' in result.output
+
+
+@patch.object(OBSImageUtil, 'parse_report_file')
+@patch('obs_img_utils.api.time')
+@patch('obs_img_utils.api.get_checksum_from_file')
+@patch('obs_img_utils.api.get_hash_from_image')
+@patch('obs_img_utils.web_content.urlopen')
+@patch.object(WebContent, 'fetch_to_dir')
+def test_conditions_check_license_conditions_ok(
+    mock_fetch_file, mock_url_open,
+    mock_get_hash_from_image, mock_get_checksum, mock_time,
+    mock_parse_report_file
+):
+    mock_parse_report_file.side_effect = DownloadMetadataFileExceptionOBS(
+        'Not found!'
+    )
+
+    mock_fetch_file.return_value = \
+        'tests/data/openSUSE-Leap-15.0-Azure.x86_64-1.0.0-Build1.133.packages'
+
+    location = MagicMock()
+    location.read.return_value = urlopen_response
+    mock_url_open.return_value = location
+
+    hash_val = MagicMock()
+    hash_val.hexdigest.return_value = 'ABC1234567890'
+    mock_get_hash_from_image.return_value = hash_val
+    mock_get_checksum.return_value = 'ABC1234567890'
+
+    mock_time.time.side_effect = [0, 0, 1]
+
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        [
+            'check-conditions',
+            '--image-name', 'openSUSE-Leap-15.0-Azure',
+            '--download-url',
+            'https://provo-mirror.opensuse.org/repositories/'
+            'Cloud:/Images:/Leap_15.0/images/',
+            '--disallow-licenses', "GPL"
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert 'All conditions provided are met' in result.output
+
+
+@patch.object(OBSImageUtil, 'parse_report_file')
+@patch('obs_img_utils.api.time')
+@patch('obs_img_utils.api.get_checksum_from_file')
+@patch('obs_img_utils.api.get_hash_from_image')
+@patch('obs_img_utils.web_content.urlopen')
+@patch.object(WebContent, 'fetch_to_dir')
+def test_conditions_check_failed_license_conditions(
+    mock_fetch_file, mock_url_open,
+    mock_get_hash_from_image, mock_get_checksum, mock_time,
+    mock_parse_report_file
+):
+    mock_parse_report_file.side_effect = DownloadMetadataFileExceptionOBS(
+        'Not found!'
+    )
+
+    mock_fetch_file.return_value = \
+        'tests/data/openSUSE-Leap-15.0-Azure.x86_64-1.0.0-Build1.133.packages'
+
+    location = MagicMock()
+    location.read.return_value = urlopen_response
+    mock_url_open.return_value = location
+
+    hash_val = MagicMock()
+    hash_val.hexdigest.return_value = 'ABC1234567890'
+    mock_get_hash_from_image.return_value = hash_val
+    mock_get_checksum.return_value = 'ABC1234567890'
+
+    mock_time.time.side_effect = [0, 0, 1]
+
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        [
+            'check-conditions',
+            '--image-name', 'openSUSE-Leap-15.0-Azure',
+            '--download-url',
+            'https://provo-mirror.opensuse.org/repositories/'
+            'Cloud:/Images:/Leap_15.0/images/',
+            '--disallow-licenses', "MIT"
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert 'Package(s) found in the image that match dis-allowed licenses.' \
+        in result.output
+
+
+@patch.object(OBSImageUtil, 'parse_report_file')
+@patch('obs_img_utils.api.time')
+@patch('obs_img_utils.api.get_checksum_from_file')
+@patch('obs_img_utils.api.get_hash_from_image')
+@patch('obs_img_utils.web_content.urlopen')
+@patch.object(WebContent, 'fetch_to_dir')
+def test_conditions_check_disallow_package_conditions_ok(
+    mock_fetch_file, mock_url_open,
+    mock_get_hash_from_image, mock_get_checksum, mock_time,
+    mock_parse_report_file
+):
+    mock_parse_report_file.side_effect = DownloadMetadataFileExceptionOBS(
+        'Not found!'
+    )
+
+    mock_fetch_file.return_value = \
+        'tests/data/openSUSE-Leap-15.0-Azure.x86_64-1.0.0-Build1.133.packages'
+
+    location = MagicMock()
+    location.read.return_value = urlopen_response
+    mock_url_open.return_value = location
+
+    hash_val = MagicMock()
+    hash_val.hexdigest.return_value = 'ABC1234567890'
+    mock_get_hash_from_image.return_value = hash_val
+    mock_get_checksum.return_value = 'ABC1234567890'
+
+    mock_time.time.side_effect = [0, 0, 1]
+
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        [
+            'check-conditions',
+            '--image-name', 'openSUSE-Leap-15.0-Azure',
+            '--download-url',
+            'https://provo-mirror.opensuse.org/repositories/'
+            'Cloud:/Images:/Leap_15.0/images/',
+            '--disallow-packages', "zypper*"
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert 'All conditions provided are met' in result.output
+
+
+@patch.object(OBSImageUtil, 'parse_report_file')
+@patch('obs_img_utils.api.time')
+@patch('obs_img_utils.api.get_checksum_from_file')
+@patch('obs_img_utils.api.get_hash_from_image')
+@patch('obs_img_utils.web_content.urlopen')
+@patch.object(WebContent, 'fetch_to_dir')
+def test_conditions_check_disallow_package_conditions_fail(
+    mock_fetch_file, mock_url_open,
+    mock_get_hash_from_image, mock_get_checksum, mock_time,
+    mock_parse_report_file
+):
+    mock_parse_report_file.side_effect = DownloadMetadataFileExceptionOBS(
+        'Not found!'
+    )
+
+    mock_fetch_file.return_value = \
+        'tests/data/openSUSE-Leap-15.0-Azure.x86_64-1.0.0-Build1.133.packages'
+
+    location = MagicMock()
+    location.read.return_value = urlopen_response
+    mock_url_open.return_value = location
+
+    hash_val = MagicMock()
+    hash_val.hexdigest.return_value = 'ABC1234567890'
+    mock_get_hash_from_image.return_value = hash_val
+    mock_get_checksum.return_value = 'ABC1234567890'
+
+    mock_time.time.side_effect = [0, 0, 1]
+
+    cond_string = 'app*'
+
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        [
+            'check-conditions',
+            '--image-name', 'openSUSE-Leap-15.0-Azure',
+            '--download-url',
+            'https://provo-mirror.opensuse.org/repositories/'
+            'Cloud:/Images:/Leap_15.0/images/',
+            '--disallow-packages', cond_string
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert 'Package(s) matching ' + cond_string + ' found in image.' \
+        in result.output

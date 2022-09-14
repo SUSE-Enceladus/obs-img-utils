@@ -18,6 +18,7 @@
 
 import click
 import logging
+import sys
 
 from obs_img_utils.utils import (
     get_config,
@@ -38,6 +39,7 @@ from obs_img_utils.utils import (
     filter_packages_by_name
 )
 from obs_img_utils.api import OBSImageUtil
+from obs_img_utils.exceptions import OBSImageConditionsException
 
 shared_options = [
     click.option(
@@ -448,7 +450,138 @@ def show(context, package_name, output, no_headers, **kwargs):
         )
 
 
+@click.command()
+@click.option(
+    '--add-conditions-interactive',
+    is_flag=True,
+    help='Invoke conditions process to specify conditions '
+         'for image'
+)
+@click.option(
+    '--disallow-licenses-interactive',
+    is_flag=True,
+    help='Invoke license REPL to specify any licenses that '
+         'should not be in the image.'
+)
+@click.option(
+    '--disallow-packages-interactive',
+    is_flag=True,
+    help='Invoke packages REPL to specify any packages which '
+         ' should not be in the image. This can use a wildcard'
+         ' (*) to match a naming pattern like "*-mini".'
+)
+@click.option(
+    '--add-conditions-file',
+    type=click.STRING,
+    help='Specify conditions for the image from a file (witht the conditions '
+         'in json format as a LIST)',
+    default=''
+)
+@click.option(
+    '--add-conditions-json',
+    type=click.STRING,
+    help='Specify conditions for the image from a CLI arg (witht the '
+         'conditions in json format as a LIST as a single string)',
+    default=''
+)
+@click.option(
+    '--disallow-licenses',
+    type=click.STRING,
+    help='Specify any licenses that should not be in the image.'
+         'More than one license can be specified sepparated by comma(,)',
+    default=''
+)
+@click.option(
+    '--disallow-packages',
+    type=click.STRING,
+    help='Specify any packages that should not be in the image.'
+         'More than one license can be specified sepparated by comma(,).'
+         'This can use a wildcard(*) to mach any naming pattern like "*-mini.',
+    default=''
+)
+@add_options(shared_options)
+@click.pass_context
+def check_conditions(
+    context,
+    add_conditions_interactive,
+    disallow_licenses_interactive,
+    disallow_packages_interactive,
+    add_conditions_file,
+    add_conditions_json,
+    disallow_licenses,
+    disallow_packages,
+    **kwargs
+):
+    """
+    Checks the conditions provided on the image from OBS repository
+     specified by `download-url`.
+    """
+
+    process_shared_options(context.obj, kwargs)
+    config_data = get_config(context.obj)
+    logger = get_logger(config_data.log_level)
+
+    image_conditions = []
+    if add_conditions_interactive:
+        image_conditions = conditions_repl(config_data.no_color)
+
+    if add_conditions_file:
+        image_conditions.extend(
+            get_condition_list_from_file(add_conditions_file, logger)
+        )
+
+    if add_conditions_json:
+        image_conditions.extend(
+            get_condition_list_from_arg(add_conditions_json, logger)
+        )
+
+    licenses = []
+    if disallow_licenses_interactive:
+        licenses = license_repl()
+
+    if disallow_licenses:
+        licenses.extend(disallow_licenses.split(','))
+
+    package_names = []
+    if disallow_packages_interactive:
+        package_names = packages_repl()
+
+    if disallow_packages:
+        package_names.extend(disallow_packages.split(','))
+
+    cli_report_callback = None
+    if config_data.log_level < logging.WARNING:
+        cli_report_callback = click_progress_callback
+
+    with handle_errors(config_data.log_level, config_data.no_color):
+        downloader = OBSImageUtil(
+            config_data.download_url,
+            context.obj['image_name'],
+            conditions=image_conditions,
+            arch=config_data.arch,
+            target_directory=config_data.target_dir,
+            profile=config_data.profile,
+            log_level=config_data.log_level,
+            conditions_wait_time=config_data.conditions_wait_time,
+            log_callback=logger,
+            report_callback=cli_report_callback,
+            checksum_extension=config_data.checksum_extension,
+            extension=config_data.extension,
+            filter_licenses=licenses,
+            filter_packages=package_names,
+            signature_extension=config_data.signature_extension,
+            skip_checksum_validation=False
+        )
+        try:
+            downloader.check_all_conditions()
+            logger.info('All conditions provided are met')
+        except OBSImageConditionsException as e:
+            logger.info('Some condition is not met: ' + str(e))
+            sys.exit(str(e))
+
+
 main.add_command(download)
 packages.add_command(list_packages)
 packages.add_command(show)
 main.add_command(packages)
+main.add_command(check_conditions)
