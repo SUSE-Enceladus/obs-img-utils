@@ -226,7 +226,8 @@ def test_image_download(
             'https://provo-mirror.opensuse.org/repositories/'
             'Cloud:/Images:/Leap_15.0/images/',
             '--target-dir', 'tests/data/', '--add-conditions-interactive',
-            '--disallow-licenses', '--disallow-packages'
+            '--disallow-licenses-interactive',
+            '--disallow-packages-interactive'
         ],
         input='y\n'
               '\n'
@@ -453,11 +454,109 @@ def test_image_download_failed_conditions_from_arg(
     )
 
     assert result.exit_code == 1
-    print("RESULT_OUTPUT->" + str(result.output))
     assert 'Condition failed: ' \
            'openSUSE-Leap-15.0-Azure 1.0.0.1.133 == 1.0.1' in result.output
     assert 'ImageConditionsException: Image conditions not met' \
         in result.output
+
+
+@patch.object(OBSImageUtil, 'parse_report_file')
+@patch('obs_img_utils.api.time')
+@patch('obs_img_utils.api.get_checksum_from_file')
+@patch('obs_img_utils.api.get_hash_from_image')
+@patch('obs_img_utils.web_content.urlopen')
+@patch.object(WebContent, 'fetch_to_dir')
+def test_image_download_failed_licenses_from_arg(
+    mock_fetch_file, mock_url_open,
+    mock_get_hash_from_image, mock_get_checksum, mock_time,
+    mock_parse_report_file
+):
+    mock_parse_report_file.side_effect = DownloadMetadataFileExceptionOBS(
+        'Not found!'
+    )
+
+    mock_fetch_file.return_value = \
+        'tests/data/openSUSE-Leap-15.0-Azure.x86_64-1.0.0-Build1.133.packages'
+
+    location = MagicMock()
+    location.read.return_value = urlopen_response
+    mock_url_open.return_value = location
+
+    hash_val = MagicMock()
+    hash_val.hexdigest.return_value = 'ABC1234567890'
+    mock_get_hash_from_image.return_value = hash_val
+    mock_get_checksum.return_value = 'ABC1234567890'
+
+    mock_time.time.side_effect = [0, 0, 1]
+
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        [
+            'download',
+            '--image-name', 'openSUSE-Leap-15.0-Azure',
+            '--download-url',
+            'https://provo-mirror.opensuse.org/repositories/'
+            'Cloud:/Images:/Leap_15.0/images/',
+            '--target-dir', 'tests/data/',
+            '--disallow-licenses', 'MIT'
+        ],
+    )
+
+    assert result.exit_code == 1
+    err = 'OBSImageConditionsException: Package(s) found in the image that '
+    err += 'match dis-allowed licenses. '
+    assert err in result.output
+
+
+@patch.object(OBSImageUtil, 'parse_report_file')
+@patch('obs_img_utils.api.time')
+@patch('obs_img_utils.api.get_checksum_from_file')
+@patch('obs_img_utils.api.get_hash_from_image')
+@patch('obs_img_utils.web_content.urlopen')
+@patch.object(WebContent, 'fetch_to_dir')
+def test_image_download_failed_package_from_arg(
+    mock_fetch_file, mock_url_open,
+    mock_get_hash_from_image, mock_get_checksum, mock_time,
+    mock_parse_report_file
+):
+    mock_parse_report_file.side_effect = DownloadMetadataFileExceptionOBS(
+        'Not found!'
+    )
+
+    mock_fetch_file.return_value = \
+        'tests/data/openSUSE-Leap-15.0-Azure.x86_64-1.0.0-Build1.133.packages'
+
+    location = MagicMock()
+    location.read.return_value = urlopen_response
+    mock_url_open.return_value = location
+
+    hash_val = MagicMock()
+    hash_val.hexdigest.return_value = 'ABC1234567890'
+    mock_get_hash_from_image.return_value = hash_val
+    mock_get_checksum.return_value = 'ABC1234567890'
+
+    mock_time.time.side_effect = [0, 0, 1]
+
+    package_filter = 'appar*'
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        [
+            'download',
+            '--image-name', 'openSUSE-Leap-15.0-Azure',
+            '--download-url',
+            'https://provo-mirror.opensuse.org/repositories/'
+            'Cloud:/Images:/Leap_15.0/images/',
+            '--target-dir', 'tests/data/',
+            '--disallow-packages', package_filter
+        ],
+    )
+
+    assert result.exit_code == 1
+    err = 'OBSImageConditionsException: Package(s) matching ' + package_filter
+    err += ' found in image.'
+    assert err in result.output
 
 
 @patch('obs_img_utils.api.get_checksum_from_file')

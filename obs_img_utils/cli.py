@@ -162,13 +162,13 @@ def main(context):
     help='Image checksum file extension. Example: sha256'
 )
 @click.option(
-    '--disallow-licenses',
+    '--disallow-licenses-interactive',
     is_flag=True,
     help='Invoke license REPL to specify any licenses that '
          'should not be in the image.'
 )
 @click.option(
-    '--disallow-packages',
+    '--disallow-packages-interactive',
     is_flag=True,
     help='Invoke packages REPL to specify any packages which '
          ' should not be in the image. This can use a wildcard'
@@ -193,6 +193,21 @@ def main(context):
          'conditions in json format as a LIST as a single string)',
     default=''
 )
+@click.option(
+    '--disallow-licenses',
+    type=click.STRING,
+    help='Specify any licenses that should not be in the image.'
+         'More than one license can be specified sepparated by comma(,)',
+    default=''
+)
+@click.option(
+    '--disallow-packages',
+    type=click.STRING,
+    help='Specify any packages that should not be in the image.'
+         'More than one license can be specified sepparated by comma(,).'
+         'This can use a wildcard(*) to mach any naming pattern like "*-mini.',
+    default=''
+)
 @add_options(shared_options)
 @click.pass_context
 def download(
@@ -201,11 +216,13 @@ def download(
     conditions_wait_time,
     extension,
     checksum_extension,
-    disallow_licenses,
-    disallow_packages,
+    disallow_licenses_interactive,
+    disallow_packages_interactive,
     skip_checksum_validation,
     add_conditions_file,
     add_conditions_json,
+    disallow_licenses,
+    disallow_packages,
     **kwargs
 ):
     """
@@ -234,12 +251,18 @@ def download(
         )
 
     licenses = []
-    if disallow_licenses:
+    if disallow_licenses_interactive:
         licenses = license_repl()
 
+    if disallow_licenses:
+        licenses.extend(disallow_licenses.split(','))
+
     package_names = []
-    if disallow_packages:
+    if disallow_packages_interactive:
         package_names = packages_repl()
+
+    if disallow_packages:
+        package_names.extend(disallow_packages.split(','))
 
     cli_report_callback = None
     if config_data.log_level < logging.WARNING:
