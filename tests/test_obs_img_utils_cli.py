@@ -227,7 +227,8 @@ def test_image_download(
             'Cloud:/Images:/Leap_15.0/images/',
             '--target-dir', 'tests/data/', '--add-conditions-interactive',
             '--disallow-licenses-interactive',
-            '--disallow-packages-interactive'
+            '--disallow-packages-interactive',
+            '--verbose',
         ],
         input='y\n'
               '\n'
@@ -437,7 +438,7 @@ def test_image_download_failed_conditions_from_arg(
 
     mock_time.time.side_effect = [0, 0, 1]
 
-    cond_string = '[{"condition":"==","release": "1","version": "1.0"}]'
+    cond_string = '{"condition":"==","release": "1","version": "1.0"}'
 
     runner = CliRunner()
     result = runner.invoke(
@@ -889,7 +890,8 @@ def test_conditions_check_disallow_package_conditions_fail(
             '--download-url',
             'https://provo-mirror.opensuse.org/repositories/'
             'Cloud:/Images:/Leap_15.0/images/',
-            '--disallow-packages', cond_string
+            '--disallow-packages', cond_string,
+            '--no-color'
         ],
     )
 
