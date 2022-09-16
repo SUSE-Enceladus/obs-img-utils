@@ -171,7 +171,7 @@ class OBSImageUtil(object):
             self.version_format
         ])
 
-        self.remote = WebContent(self.download_url)
+        self.remote = WebContent(self.download_url, logger=self.log_callback)
         self.report_callback = report_callback
         mkpath(self.target_directory)
 
@@ -610,11 +610,12 @@ class OBSImageUtil(object):
                 self.base_regex,
                 self.extensions
             )
+            self._fix_image_name_and_regex_if_image_name_incomplete()
 
             if not self._base_file_name:
                 raise OBSImageVersionException(
                     'No images found that match {name} at {url}'.format(
-                        name=self.base_regex,
+                        name=self.image_name,
                         url=self.download_url
                     )
                 )
@@ -655,3 +656,30 @@ class OBSImageUtil(object):
             self._packages = self.get_image_packages_metadata()
 
         return self._packages
+
+    def _fix_image_name_and_regex_if_image_name_incomplete(self):
+        expected_image_name = self.base_file_name.split("." + self.arch)[0]
+        if (
+            self.image_name is not expected_image_name
+        ):
+            self.log_callback.debug(
+                f'Fixing image_name provided {self.image_name} for '
+                f'{expected_image_name}'
+            )
+            self.image_name = expected_image_name
+
+            new_regex = r''.join([
+                r'^',
+                self.image_name,
+                r'\.',
+                self.arch,
+                '-',
+                self.version_format
+            ])
+
+            self.log_callback.debug(
+                f'Fixing base_regex with new image_name was {self.base_regex}'
+                f' updated to {new_regex}'
+            )
+
+            self.base_regex = new_regex

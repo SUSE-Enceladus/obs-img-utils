@@ -574,10 +574,16 @@ def check_conditions(
         )
         try:
             downloader.check_all_conditions()
-            logger.info('All conditions provided are met')
+            logger.info(
+                'All conditions provided are met in '
+                f' image {downloader.base_file_name}'
+            )
         except OBSImageConditionsException as e:
-            logger.info('Some condition is not met: ' + str(e))
-            sys.exit(str(e))
+            logger.info(
+                'Some condition is not met for image '
+                f' {downloader.base_file_name}: {str(e)}'
+            )
+            sys.exit(1)
 
 
 main.add_command(download)

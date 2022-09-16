@@ -73,7 +73,7 @@ def test_get_hash_from_image():
         '.x86_64-1.0.0-Build1.133.packages'
     )
     assert output.hexdigest() == \
-        'f71d1050f3b3b1c02b3f420866e4539c9ab482d9a0497de4c40b9d3afbc99b55'
+        '699e992181b9c871d945ba993fa05c9b157faee597bb3d57d6e28587bfb959fb'
 
 
 def test_echo_packages_text(capsys):

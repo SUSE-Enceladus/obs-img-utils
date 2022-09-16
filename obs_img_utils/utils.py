@@ -218,14 +218,15 @@ def handle_errors(log_level, no_color):
     try:
         yield
     except Exception as error:
-        if log_level == logging.DEBUG:
-            raise
-
         echo_style(
             "{}: {}".format(type(error).__name__, error),
             no_color,
             fg='red'
         )
+
+        if log_level == logging.DEBUG:
+            raise
+
         sys.exit(1)
 
 
