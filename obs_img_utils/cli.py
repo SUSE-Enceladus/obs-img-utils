@@ -138,7 +138,7 @@ def main(context):
 
 @click.command()
 @click.option(
-    '--add-conditions-interactive',
+    '--add-conditions',
     is_flag=True,
     help='Invoke conditions process to specify conditions '
          'for image'
@@ -162,13 +162,13 @@ def main(context):
     help='Image checksum file extension. Example: sha256'
 )
 @click.option(
-    '--disallow-licenses-interactive',
+    '--disallow-licenses',
     is_flag=True,
     help='Invoke license REPL to specify any licenses that '
          'should not be in the image.'
 )
 @click.option(
-    '--disallow-packages-interactive',
+    '--disallow-packages',
     is_flag=True,
     help='Invoke packages REPL to specify any packages which '
          ' should not be in the image. This can use a wildcard'
@@ -187,21 +187,21 @@ def main(context):
     default=''
 )
 @click.option(
-    '--add-conditions-json',
+    '--add-conditions-arg',
     type=click.STRING,
     help='Specify conditions for the image from a CLI arg (with the '
          'conditions in json format as a LIST as a single string)',
     default=''
 )
 @click.option(
-    '--disallow-licenses',
+    '--disallow-licenses-arg',
     type=click.STRING,
     help='Specify any licenses that should not be in the image.'
          'More than one license can be specified separated by comma(,)',
     default=''
 )
 @click.option(
-    '--disallow-packages',
+    '--disallow-packages-arg',
     type=click.STRING,
     help='Specify any packages that should not be in the image.'
          'More than one license can be specified separated by comma(,). This '
@@ -212,17 +212,17 @@ def main(context):
 @click.pass_context
 def download(
     context,
-    add_conditions_interactive,
+    add_conditions,
     conditions_wait_time,
     extension,
     checksum_extension,
-    disallow_licenses_interactive,
-    disallow_packages_interactive,
-    skip_checksum_validation,
-    add_conditions_file,
-    add_conditions_json,
     disallow_licenses,
     disallow_packages,
+    skip_checksum_validation,
+    add_conditions_file,
+    add_conditions_arg,
+    disallow_licenses_arg,
+    disallow_packages_arg,
     **kwargs
 ):
     """
@@ -237,7 +237,7 @@ def download(
     logger = get_logger(config_data.log_level)
 
     image_conditions = []
-    if add_conditions_interactive:
+    if add_conditions:
         image_conditions = conditions_repl(config_data.no_color)
 
     if add_conditions_file:
@@ -245,24 +245,24 @@ def download(
             get_condition_list_from_file(add_conditions_file, logger)
         )
 
-    if add_conditions_json:
+    if add_conditions_arg:
         image_conditions.extend(
-            get_condition_list_from_arg(add_conditions_json, logger)
+            get_condition_list_from_arg(add_conditions_arg, logger)
         )
 
     licenses = []
-    if disallow_licenses_interactive:
+    if disallow_licenses:
         licenses = license_repl()
 
-    if disallow_licenses:
-        licenses.extend(disallow_licenses.split(','))
+    if disallow_licenses_arg:
+        licenses.extend(disallow_licenses_arg.split(','))
 
     package_names = []
-    if disallow_packages_interactive:
+    if disallow_packages:
         package_names = packages_repl()
 
-    if disallow_packages:
-        package_names.extend(disallow_packages.split(','))
+    if disallow_packages_arg:
+        package_names.extend(disallow_packages_arg.split(','))
 
     cli_report_callback = None
     if config_data.log_level < logging.WARNING:

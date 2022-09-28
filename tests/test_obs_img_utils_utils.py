@@ -19,6 +19,7 @@
 import collections
 import io
 import logging
+import pytest
 
 from contextlib import suppress
 from unittest.mock import patch, MagicMock
@@ -31,6 +32,7 @@ from obs_img_utils.utils import (
     get_checksum_from_file,
     get_hash_from_image,
     get_condition_list_from_file,
+    get_condition_list_from_arg,
     get_logger
 )
 
@@ -175,7 +177,7 @@ def test_get_conditions_list_from_file():
     assert conditions == expected_conditions
 
 
-def test_get_conditions_list_from_file_not_list():
+def test_get_conditions_list_from_file_not_list(capsys):
     logger = get_logger(logging.INFO)
     condition1 = {
         'condition': '>=',
@@ -187,6 +189,77 @@ def test_get_conditions_list_from_file_not_list():
     expected_conditions.append(condition1)
 
     filename = './tests/data/example_conditions_not_list.json'
-    conditions = get_condition_list_from_file(filename, logger)
+    with pytest.raises(SystemExit) as test_exit:
+        conditions = get_condition_list_from_file(filename, logger)
+    assert test_exit.type == SystemExit
+    assert test_exit.value.code == 1
+
+    captured = capsys.readouterr()
+    assert f"Conditions from {filename} not in list format." in captured.err
+
+
+def test_get_conditions_list_from_file_wrong_format(capsys):
+    logger = get_logger(logging.INFO)
+
+    filename = './tests/data/example_conditions_wrong_format.json'
+    with pytest.raises(SystemExit) as test_exit:
+        conditions = get_condition_list_from_file(filename, logger)
+    assert test_exit.type == SystemExit
+    assert test_exit.value.code == 1
+
+    captured = capsys.readouterr()
+    assert f"Wrong format in conditions from {filename}:" in captured.err
+
+
+def test_get_conditions_list_from_arg():
+    logger = get_logger(logging.INFO)
+    condition1 = {
+        'condition': '>=',
+        'release': '1',
+        'version': '1'
+    }
+    condition2 = {
+        'package_name': 'zypper',
+        'condition': '>=',
+        'version': '1.14.56'
+    }
+
+    cond_as_string='[{"condition": ">=", "release": "1", "version": "1"},{"package_name": "zypper", "condition": ">=", "version": "1.14.56"}]'  # noqa: E501
+
+    expected_conditions = []
+    expected_conditions.append(condition1)
+    expected_conditions.append(condition2)
+
+    conditions = get_condition_list_from_arg(cond_as_string, logger)
     assert type(conditions) == list
     assert conditions == expected_conditions
+
+
+def test_get_conditions_list_from_arg_not_list(capsys):
+    logger = get_logger(logging.INFO)
+
+    cond_as_string='{"condition": ">=", "release": "1", "version": "1"}'
+
+    with pytest.raises(SystemExit) as test_exit:
+        conditions = get_condition_list_from_arg(cond_as_string, logger)
+    assert test_exit.type == SystemExit
+    assert test_exit.value.code == 1
+
+    captured = capsys.readouterr()
+    assert f'Conditions from CLI arg "{cond_as_string}" not in list format.' \
+        in captured.err
+
+
+def test_get_conditions_list_from_arg_wrong_format(capsys):
+    logger = get_logger(logging.INFO)
+
+    cond_as_string='{"condition"= ">=", "release": "1", "version": "1"'
+
+    with pytest.raises(SystemExit) as test_exit:
+        conditions = get_condition_list_from_arg(cond_as_string, logger)
+    assert test_exit.type == SystemExit
+    assert test_exit.value.code == 1
+
+    captured = capsys.readouterr()
+    assert f'Wrong format in conditions from CLI arg "{cond_as_string}":' \
+        in captured.err

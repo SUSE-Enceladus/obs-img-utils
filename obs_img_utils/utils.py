@@ -517,34 +517,44 @@ def get_condition_list_from_file(filename, logger):
     """
     Creates the conditions objects from a file with json dump.
     """
-    with open(filename, 'r') as file:
-        data = json.load(file)
+    try:
+        with open(filename, 'r') as file:
+            data = json.load(file)
 
-    if type(data) != list:
-        logger.warning(
-            f'Loaded conditions from {filename} but not '
-            'in list format! Converting it...'
+        if type(data) != type([]):
+            logger.error(
+                f'Conditions from {filename} not in list format.'
+            )
+            sys.exit(1)
+
+        return data
+    except (ValueError, TypeError) as e:
+        logger.error(
+            f'Wrong format in conditions from {filename}: {str(e)}'
         )
-        condition_list = []
-        condition_list.append(data)
-        return condition_list
+        sys.exit(1)
 
-    return data
 
 
 def get_condition_list_from_arg(json_string, logger):
     """
     Creates the conditions objects from a json dump as string.
     """
-    data = json.loads(json_string)
+    try:
+        data = json.loads(json_string)
 
-    if type(data) != list:
-        logger.warning(
-            'Loaded conditions from CLI arg but not '
-            'in list format! Converting it...'
+        if type(data) != type([]):
+            logger.error(
+                f'Conditions from CLI arg "{json_string}" not in list format.'
+            )
+            sys.exit(1)
+
+        return data
+
+    except (ValueError, TypeError) as e:
+        logger.error(
+            f'Wrong format in conditions from CLI arg "{json_string}":'
+            f'{str(e)}'
         )
-        condition_list = []
-        condition_list.append(data)
-        return condition_list
+        sys.exit(1)
 
-    return data

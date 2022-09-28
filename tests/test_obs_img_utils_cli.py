@@ -225,9 +225,9 @@ def test_image_download(
             '--download-url',
             'https://provo-mirror.opensuse.org/repositories/'
             'Cloud:/Images:/Leap_15.0/images/',
-            '--target-dir', 'tests/data/', '--add-conditions-interactive',
-            '--disallow-licenses-interactive',
-            '--disallow-packages-interactive'
+            '--target-dir', 'tests/data/', '--add-conditions',
+            '--disallow-licenses',
+            '--disallow-packages'
         ],
         input='y\n'
               '\n'
@@ -291,7 +291,7 @@ def test_image_download_failed_conditions(
             '--download-url',
             'https://provo-mirror.opensuse.org/repositories/'
             'Cloud:/Images:/Leap_15.0/images/',
-            '--target-dir', 'tests/data/', '--add-conditions-interactive',
+            '--target-dir', 'tests/data/', '--add-conditions',
             '--conditions-wait-time', '1'
         ],
         input='y\n'
@@ -353,7 +353,6 @@ def test_image_download_failed_conditions_from_file(
     )
 
     assert result.exit_code == 1
-    print("RESULT_OUTPUT->" + str(result.output))
     assert 'Condition failed: ' \
            'openSUSE-Leap-15.0-Azure 1.0.0.1.133 == 1.0.1' in result.output
     assert 'ImageConditionsException: Image conditions not met' \
@@ -408,6 +407,104 @@ def test_image_download_conditions_file(
         '-1.0.0-Build1.133.vhdfixed.xz' in result.output
 
 
+@patch('obs_img_utils.api.get_checksum_from_file')
+@patch('obs_img_utils.api.get_hash_from_image')
+@patch('obs_img_utils.web_content.urlopen')
+@patch('obs_img_utils.web_content.urlretrieve')
+@patch.object(WebContent, 'fetch_to_dir')
+def test_image_download_conditions_file_dup_keys(
+    mock_fetch_file, mock_url_retrieve, mock_url_open,
+    mock_get_hash_from_image, mock_get_checksum
+):
+    mock_fetch_file.side_effect = [
+        None,
+        'tests/data/'
+        'openSUSE-Leap-15.0-Azure.x86_64-1.0.0-Build1.133.packages',
+        'tests/data/'
+        'openSUSE-Leap-15.0-Azure.x86_64-1.0.0-Build1.133.vhdfixed.xz',
+        'tests/data/'
+        'openSUSE-Leap-15.0-Azure.x86_64-1.0.0-Build1.133.vhdfixed.xz.sha256',
+        None
+    ]
+
+    location = MagicMock()
+    location.read.return_value = urlopen_response
+    mock_url_open.return_value = location
+
+    hash_val = MagicMock()
+    hash_val.hexdigest.return_value = 'ABC1234567890'
+    mock_get_hash_from_image.return_value = hash_val
+    mock_get_checksum.return_value = 'ABC1234567890'
+
+    filename = 'tests/data/example_conditions_duplicated_keys.json'
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        [
+            'download',
+            '--image-name', 'openSUSE-Leap-15.0-Azure',
+            '--download-url',
+            'https://provo-mirror.opensuse.org/repositories/'
+            'Cloud:/Images:/Leap_15.0/images/',
+            '--target-dir', 'tests/data/',
+            '--add-conditions-file', filename
+        ]
+    )
+
+    assert result.exit_code == 1
+    assert 'OBSImageConditionsException: Image conditions not met' \
+        in result.output
+
+
+@patch('obs_img_utils.api.get_checksum_from_file')
+@patch('obs_img_utils.api.get_hash_from_image')
+@patch('obs_img_utils.web_content.urlopen')
+@patch('obs_img_utils.web_content.urlretrieve')
+@patch.object(WebContent, 'fetch_to_dir')
+def test_image_download_conditions_file_wrong_format(
+    mock_fetch_file, mock_url_retrieve, mock_url_open,
+    mock_get_hash_from_image, mock_get_checksum
+):
+    mock_fetch_file.side_effect = [
+        None,
+        'tests/data/'
+        'openSUSE-Leap-15.0-Azure.x86_64-1.0.0-Build1.133.packages',
+        'tests/data/'
+        'openSUSE-Leap-15.0-Azure.x86_64-1.0.0-Build1.133.vhdfixed.xz',
+        'tests/data/'
+        'openSUSE-Leap-15.0-Azure.x86_64-1.0.0-Build1.133.vhdfixed.xz.sha256',
+        None
+    ]
+
+    location = MagicMock()
+    location.read.return_value = urlopen_response
+    mock_url_open.return_value = location
+
+    hash_val = MagicMock()
+    hash_val.hexdigest.return_value = 'ABC1234567890'
+    mock_get_hash_from_image.return_value = hash_val
+    mock_get_checksum.return_value = 'ABC1234567890'
+
+    filename = 'tests/data/example_conditions_wrong_format.json'
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        [
+            'download',
+            '--image-name', 'openSUSE-Leap-15.0-Azure',
+            '--download-url',
+            'https://provo-mirror.opensuse.org/repositories/'
+            'Cloud:/Images:/Leap_15.0/images/',
+            '--target-dir', 'tests/data/',
+            '--add-conditions-file',
+            filename
+        ]
+    )
+
+    assert result.exit_code == 1
+    assert f'Wrong format in conditions from {filename}:' in result.output
+
+
 @patch.object(OBSImageUtil, 'parse_report_file')
 @patch('obs_img_utils.api.time')
 @patch('obs_img_utils.api.get_checksum_from_file')
@@ -449,7 +546,7 @@ def test_image_download_failed_conditions_from_arg(
             'https://provo-mirror.opensuse.org/repositories/'
             'Cloud:/Images:/Leap_15.0/images/',
             '--target-dir', 'tests/data/',
-            '--add-conditions-json', cond_string
+            '--add-conditions-arg', cond_string
         ],
     )
 
@@ -499,7 +596,7 @@ def test_image_download_failed_licenses_from_arg(
             'https://provo-mirror.opensuse.org/repositories/'
             'Cloud:/Images:/Leap_15.0/images/',
             '--target-dir', 'tests/data/',
-            '--disallow-licenses', 'MIT'
+            '--disallow-licenses-arg', 'MIT'
         ],
     )
 
@@ -549,7 +646,7 @@ def test_image_download_failed_package_from_arg(
             'https://provo-mirror.opensuse.org/repositories/'
             'Cloud:/Images:/Leap_15.0/images/',
             '--target-dir', 'tests/data/',
-            '--disallow-packages', package_filter
+            '--disallow-packages-arg', package_filter
         ],
     )
 
@@ -601,10 +698,109 @@ def test_image_download_conditions_from_arg(
             'https://provo-mirror.opensuse.org/repositories/'
             'Cloud:/Images:/Leap_15.0/images/',
             '--target-dir', 'tests/data/',
-            '--add-conditions-json', cond_string
+            '--add-conditions-arg', cond_string
         ]
     )
 
     assert result.exit_code == 0
     assert 'Image downloaded: tests/data/openSUSE-Leap-15.0-Azure.x86_64' \
         '-1.0.0-Build1.133.vhdfixed.xz' in result.output
+
+
+@patch('obs_img_utils.api.get_checksum_from_file')
+@patch('obs_img_utils.api.get_hash_from_image')
+@patch('obs_img_utils.web_content.urlopen')
+@patch('obs_img_utils.web_content.urlretrieve')
+@patch.object(WebContent, 'fetch_to_dir')
+def test_image_download_conditions_from_arg_wrong_format(
+    mock_fetch_file, mock_url_retrieve, mock_url_open,
+    mock_get_hash_from_image, mock_get_checksum
+):
+    mock_fetch_file.side_effect = [
+        None,
+        'tests/data/'
+        'openSUSE-Leap-15.0-Azure.x86_64-1.0.0-Build1.133.packages',
+        'tests/data/'
+        'openSUSE-Leap-15.0-Azure.x86_64-1.0.0-Build1.133.vhdfixed.xz',
+        'tests/data/'
+        'openSUSE-Leap-15.0-Azure.x86_64-1.0.0-Build1.133.vhdfixed.xz.sha256',
+        None
+    ]
+
+    location = MagicMock()
+    location.read.return_value = urlopen_response
+    mock_url_open.return_value = location
+
+    hash_val = MagicMock()
+    hash_val.hexdigest.return_value = 'ABC1234567890'
+    mock_get_hash_from_image.return_value = hash_val
+    mock_get_checksum.return_value = 'ABC1234567890'
+
+    cond_string = '{"condition"=">=" "release":"1","version": "0.0"},'
+
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        [
+            'download',
+            '--image-name', 'openSUSE-Leap-15.0-Azure',
+            '--download-url',
+            'https://provo-mirror.opensuse.org/repositories/'
+            'Cloud:/Images:/Leap_15.0/images/',
+            '--target-dir', 'tests/data/',
+            '--add-conditions-arg', cond_string
+        ]
+    )
+
+    assert result.exit_code == 1
+    assert f'Wrong format in conditions from CLI arg "{cond_string}":' \
+        in result.output
+
+
+@patch('obs_img_utils.api.get_checksum_from_file')
+@patch('obs_img_utils.api.get_hash_from_image')
+@patch('obs_img_utils.web_content.urlopen')
+@patch('obs_img_utils.web_content.urlretrieve')
+@patch.object(WebContent, 'fetch_to_dir')
+def test_image_download_conditions_from_arg_not_list(
+    mock_fetch_file, mock_url_retrieve, mock_url_open,
+    mock_get_hash_from_image, mock_get_checksum
+):
+    mock_fetch_file.side_effect = [
+        None,
+        'tests/data/'
+        'openSUSE-Leap-15.0-Azure.x86_64-1.0.0-Build1.133.packages',
+        'tests/data/'
+        'openSUSE-Leap-15.0-Azure.x86_64-1.0.0-Build1.133.vhdfixed.xz',
+        'tests/data/'
+        'openSUSE-Leap-15.0-Azure.x86_64-1.0.0-Build1.133.vhdfixed.xz.sha256',
+        None
+    ]
+
+    location = MagicMock()
+    location.read.return_value = urlopen_response
+    mock_url_open.return_value = location
+
+    hash_val = MagicMock()
+    hash_val.hexdigest.return_value = 'ABC1234567890'
+    mock_get_hash_from_image.return_value = hash_val
+    mock_get_checksum.return_value = 'ABC1234567890'
+
+    cond_string = '{"condition":">=","release":"1","version": "0.0"}'
+
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        [
+            'download',
+            '--image-name', 'openSUSE-Leap-15.0-Azure',
+            '--download-url',
+            'https://provo-mirror.opensuse.org/repositories/'
+            'Cloud:/Images:/Leap_15.0/images/',
+            '--target-dir', 'tests/data/',
+            '--add-conditions-arg', cond_string
+        ]
+    )
+
+    assert result.exit_code == 1
+    assert f'Conditions from CLI arg "{cond_string}" not in list format.' in result.output
