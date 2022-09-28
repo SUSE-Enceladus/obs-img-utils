@@ -803,4 +803,5 @@ def test_image_download_conditions_from_arg_not_list(
     )
 
     assert result.exit_code == 1
-    assert f'Conditions from CLI arg "{cond_string}" not in list format.' in result.output
+    assert f'Conditions from CLI arg "{cond_string}" not in list format.'  \
+        in result.output

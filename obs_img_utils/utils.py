@@ -521,7 +521,7 @@ def get_condition_list_from_file(filename, logger):
         with open(filename, 'r') as file:
             data = json.load(file)
 
-        if type(data) != type([]):
+        if not isinstance(data, list):
             logger.error(
                 f'Conditions from {filename} not in list format.'
             )
@@ -535,7 +535,6 @@ def get_condition_list_from_file(filename, logger):
         sys.exit(1)
 
 
-
 def get_condition_list_from_arg(json_string, logger):
     """
     Creates the conditions objects from a json dump as string.
@@ -543,7 +542,7 @@ def get_condition_list_from_arg(json_string, logger):
     try:
         data = json.loads(json_string)
 
-        if type(data) != type([]):
+        if not isinstance(data, list):
             logger.error(
                 f'Conditions from CLI arg "{json_string}" not in list format.'
             )
@@ -557,4 +556,3 @@ def get_condition_list_from_arg(json_string, logger):
             f'{str(e)}'
         )
         sys.exit(1)
-

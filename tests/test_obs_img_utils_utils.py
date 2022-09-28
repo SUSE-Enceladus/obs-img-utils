@@ -179,18 +179,10 @@ def test_get_conditions_list_from_file():
 
 def test_get_conditions_list_from_file_not_list(capsys):
     logger = get_logger(logging.INFO)
-    condition1 = {
-        'condition': '>=',
-        'release': '1',
-        'version': '1'
-    }
-
-    expected_conditions = []
-    expected_conditions.append(condition1)
 
     filename = './tests/data/example_conditions_not_list.json'
     with pytest.raises(SystemExit) as test_exit:
-        conditions = get_condition_list_from_file(filename, logger)
+        get_condition_list_from_file(filename, logger)
     assert test_exit.type == SystemExit
     assert test_exit.value.code == 1
 
@@ -203,7 +195,7 @@ def test_get_conditions_list_from_file_wrong_format(capsys):
 
     filename = './tests/data/example_conditions_wrong_format.json'
     with pytest.raises(SystemExit) as test_exit:
-        conditions = get_condition_list_from_file(filename, logger)
+        get_condition_list_from_file(filename, logger)
     assert test_exit.type == SystemExit
     assert test_exit.value.code == 1
 
@@ -224,7 +216,7 @@ def test_get_conditions_list_from_arg():
         'version': '1.14.56'
     }
 
-    cond_as_string='[{"condition": ">=", "release": "1", "version": "1"},{"package_name": "zypper", "condition": ">=", "version": "1.14.56"}]'  # noqa: E501
+    cond_as_string = '[{"condition": ">=", "release": "1", "version": "1"},{"package_name": "zypper", "condition": ">=", "version": "1.14.56"}]'  # noqa: E501
 
     expected_conditions = []
     expected_conditions.append(condition1)
@@ -238,10 +230,10 @@ def test_get_conditions_list_from_arg():
 def test_get_conditions_list_from_arg_not_list(capsys):
     logger = get_logger(logging.INFO)
 
-    cond_as_string='{"condition": ">=", "release": "1", "version": "1"}'
+    cond_as_string = '{"condition": ">=", "release": "1", "version": "1"}'
 
     with pytest.raises(SystemExit) as test_exit:
-        conditions = get_condition_list_from_arg(cond_as_string, logger)
+        get_condition_list_from_arg(cond_as_string, logger)
     assert test_exit.type == SystemExit
     assert test_exit.value.code == 1
 
@@ -253,10 +245,10 @@ def test_get_conditions_list_from_arg_not_list(capsys):
 def test_get_conditions_list_from_arg_wrong_format(capsys):
     logger = get_logger(logging.INFO)
 
-    cond_as_string='{"condition"= ">=", "release": "1", "version": "1"'
+    cond_as_string = '{"condition"= ">=", "release": "1", "version": "1"'
 
     with pytest.raises(SystemExit) as test_exit:
-        conditions = get_condition_list_from_arg(cond_as_string, logger)
+        get_condition_list_from_arg(cond_as_string, logger)
     assert test_exit.type == SystemExit
     assert test_exit.value.code == 1
 
