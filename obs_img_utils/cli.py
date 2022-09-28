@@ -182,14 +182,14 @@ def main(context):
 @click.option(
     '--add-conditions-file',
     type=click.STRING,
-    help='Specify conditions for the image from a file (witht the conditions '
+    help='Specify conditions for the image from a file (with the conditions '
          'in json format as a LIST)',
     default=''
 )
 @click.option(
     '--add-conditions-json',
     type=click.STRING,
-    help='Specify conditions for the image from a CLI arg (witht the '
+    help='Specify conditions for the image from a CLI arg (with the '
          'conditions in json format as a LIST as a single string)',
     default=''
 )
@@ -197,15 +197,15 @@ def main(context):
     '--disallow-licenses',
     type=click.STRING,
     help='Specify any licenses that should not be in the image.'
-         'More than one license can be specified sepparated by comma(,)',
+         'More than one license can be specified separated by comma(,)',
     default=''
 )
 @click.option(
     '--disallow-packages',
     type=click.STRING,
     help='Specify any packages that should not be in the image.'
-         'More than one license can be specified sepparated by comma(,).'
-         'This can use a wildcard(*) to mach any naming pattern like "*-mini.',
+         'More than one license can be specified separated by comma(,). This '
+         'can use a wildcard("*") to mach any naming pattern like "*-mini."',
     default=''
 )
 @add_options(shared_options)
