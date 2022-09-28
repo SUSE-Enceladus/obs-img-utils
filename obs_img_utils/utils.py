@@ -522,10 +522,10 @@ def get_condition_list_from_file(filename, logger):
         data = json.load(file)
 
     if type(data) != list:
-        msg = f'Loaded conditions from {filename} but not '
-        msg += 'in list format! Converting it...'
-
-        logger.warning(msg)
+        logger.warning(
+            f'Loaded conditions from {filename} but not '
+            'in list format! Converting it...'
+        )
         condition_list = []
         condition_list.append(data)
         return condition_list
@@ -540,10 +540,10 @@ def get_condition_list_from_arg(json_string, logger):
     data = json.loads(json_string)
 
     if type(data) != list:
-        msg = 'Loaded conditions from CLI arg but not '
-        msg += 'in list format! Converting it...'
-
-        logger.warning(msg)
+        logger.warning(
+            'Loaded conditions from CLI arg but not '
+            'in list format! Converting it...'
+        )
         condition_list = []
         condition_list.append(data)
         return condition_list
