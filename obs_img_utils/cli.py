@@ -205,7 +205,7 @@ def main(context):
     type=click.STRING,
     help='Specify any packages that should not be in the image.'
          'More than one license can be specified separated by comma(,). This '
-         'can use a wildcard("*") to mach any naming pattern like "*-mini."',
+         'can use a wildcard("*") to mach any naming pattern like "*-mini".',
     default=''
 )
 @add_options(shared_options)
