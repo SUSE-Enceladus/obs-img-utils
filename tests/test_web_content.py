@@ -45,3 +45,28 @@ def test_fetch_to_dir_new_web(mock_url_retrieve):
         'tests/data',
         ['packages'])
     assert name == 'tests/data/SLES15-SP1-GCE.x86_64-1.0.2-Build1.6.packages'
+
+
+@patch('obs_img_utils.web_content.urlretrieve')
+@patch('obs_img_utils.web_content.urlopen')
+def test_fetch_to_dir_json(mock_urlopen, mock_urlretrieve):
+    with open('tests/data/index_new.html') as f:
+        first_response = f.read()
+
+    with open('tests/data/index.json') as f2:
+        second_response = f2.read()
+
+    mock_urlopen.return_value.read.side_effect = [
+        first_response,
+        first_response,
+        second_response
+    ]
+
+    path = os.path.abspath('tests/data/index_new.html')
+    wc = WebContent('file://{0}'.format(path))
+    name = wc.fetch_to_dir(
+        'SLES15-SP2-GCE',
+        '^SLES15-SP2-GCE\\.x86_64-(\\d+\\.\\d+\\.\\d+)-Build(.*)',
+        'tests/data',
+        ['packages'])
+    assert name == 'tests/data/SLES15-SP2-GCE.x86_64-1.0.2-Build1.6.packages'

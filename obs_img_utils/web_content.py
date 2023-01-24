@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import json
 import os
 import re
 
@@ -78,6 +79,26 @@ class WebContent(object):
 
                     return target_file
 
+        # Previous search did not find the target file
+        # Trying to search through the json listing
+        # per new MirrorCache web interface used in opensuse.org
+        for name in self.fetch_json_list(base_name):
+            for extension in extensions:
+                if name.endswith(extension) and re.match(regex, name):
+                    target_file = os.sep.join([target_dir, name])
+
+                    try:
+                        urlretrieve(
+                            os.sep.join([self.uri, name]),
+                            target_file,
+                            **kwargs
+                        )
+                    finally:
+                        if callback:
+                            callback(0, 0, 0, True)
+
+                    return target_file
+
     def fetch_file_name(
         self,
         base_name,
@@ -113,3 +134,19 @@ class WebContent(object):
             new_index_list = index_list
 
         return sorted(list(set(new_index_list)))
+
+    def fetch_json_list(self, base_name):
+        index_list = self._manage_fetch_json_list(base_name)
+        return index_list
+
+    def _manage_fetch_json_list(self, base_name, urlparam='jsontable'):
+        request = Request(self.uri + '?' + urlparam)
+        location = urlopen(request)
+        index_list = []
+        try:
+            links = json.loads(location.read())['data']
+            for link in links:
+                index_list.append(link['name'])
+        except Exception:
+            pass
+        return sorted(list(set(index_list)))
