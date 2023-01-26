@@ -1,3 +1,10 @@
+v1.1.0 (2023-01-26)
+===================
+- Adds .vhdfixed extension support for images
+- Supports new Open Build Service web interface
+- Includes an --output parameter to packages subcommand to select output format
+- Improvements in log verbosity control parameters (--quiet and --verbose)
+
 v1.0.2 (2022-05-16)
 ===================
 
