@@ -27,6 +27,7 @@ from urllib.request import (
     urlopen,
     Request
 )
+from pkg_resources import parse_version
 
 
 class WebContent(object):
@@ -105,11 +106,18 @@ class WebContent(object):
         regex,
         extensions
     ):
+        possible_filenames = []
         for name in self.fetch_index_list(base_name):
             for extension in extensions:
                 if name.endswith(extension) and re.match(regex, name):
-                    return name.replace(extension, ''), extension
-
+                    possible_filenames.append(
+                        (name.replace(extension, ''), extension)
+                    )
+        if possible_filenames:
+            return self._pick_highest_version_release(
+                possible_filenames,
+                regex
+            )
         return None, None
 
     def _manage_fetch_index_list(self, base_name, href_prefix=''):
@@ -150,3 +158,23 @@ class WebContent(object):
         except Exception:
             pass
         return sorted(list(set(index_list)))
+
+    def _pick_highest_version_release(self, possible_filenames, regex):
+        chosen_tuple = (None, None)
+        highest_version = None
+        for filename, extension in possible_filenames:
+            version = re.search(regex, filename)
+            if version:
+                new_version = ".".join([version.group(1), version.group(2)])
+                if new_version[-1] == ".":
+                    new_version = new_version[:-1]
+
+                if highest_version is None:
+                    highest_version = new_version
+                    chosen_tuple = (filename, extension)
+                    continue
+
+                if parse_version(new_version) > parse_version(highest_version):
+                    highest_version = new_version
+                    chosen_tuple = (filename, extension)
+        return chosen_tuple
