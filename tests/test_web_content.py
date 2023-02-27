@@ -70,3 +70,23 @@ def test_fetch_to_dir_json(mock_urlopen, mock_urlretrieve):
         'tests/data',
         ['packages'])
     assert name == 'tests/data/SLES15-SP2-GCE.x86_64-1.0.2-Build1.6.packages'
+
+
+@patch('obs_img_utils.web_content.urlretrieve')
+@patch('obs_img_utils.web_content.urlopen')
+def test_fetch_file_name(mock_urlopen, mock_urlretrieve):
+    with open('tests/data/index_name_picker.html') as f:
+        first_response = f.read()
+
+    mock_urlopen.return_value.read.side_effect = [
+        first_response,
+    ]
+
+    path = os.path.abspath('tests/data/index_name_picker.html')
+    wc = WebContent('file://{0}'.format(path))
+    name, extension = wc.fetch_file_name(
+        'SLES15-SP1-Azure-BYOS.x86_64',
+        '^SLES15-SP1-Azure-BYOS\\.x86_64-(\\d+\\.\\d+\\.\\d+)-Build(.*)',
+        ['vhdfixed.xz'])
+    assert name == 'SLES15-SP1-Azure-BYOS.x86_64-1.2.3-Build1.22.'
+    assert extension == 'vhdfixed.xz'
