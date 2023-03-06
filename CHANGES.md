@@ -1,3 +1,8 @@
+v1.2.0 (2023-03-06)
+===================
+- Adds new required extension (vmdk.xz) for images
+- In case base_name variable is not set, the highest version-release combination of matching images in OBS is chosen.
+
 v1.1.0 (2023-01-26)
 ===================
 - Adds .vhdfixed extension support for images
