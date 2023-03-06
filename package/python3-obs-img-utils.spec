@@ -18,7 +18,7 @@
 
 %bcond_without test
 Name:           python3-obs-img-utils
-Version:        1.1.0
+Version:        1.2.0
 Release:        0
 Summary:        API and CLI utilities for images in OBS
 License:        GPL-3.0-or-later
