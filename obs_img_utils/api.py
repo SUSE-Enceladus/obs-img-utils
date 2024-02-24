@@ -411,7 +411,15 @@ class OBSImageUtil(object):
         try:
             result_packages = self.parse_report_file()
         except DownloadMetadataFileExceptionOBS:
-            result_packages = self.parse_packages_file()
+            try:
+                result_packages = self.parse_packages_file()
+            except DownloadMetadataFileExceptionOBS:
+                self.log_callback.warning(
+                    'No image metadata found: {0} and {1} unverifiable'.format(
+                        'package conditions',
+                        'buildtime constraints'
+                    )
+                )
 
         return result_packages
 
