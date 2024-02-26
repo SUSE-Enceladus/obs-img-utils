@@ -237,7 +237,7 @@ def test_image_download(
               'apparmor-parser\n'
               '\n'
               '2.12.2\n'
-              'lp150.6.14.1\n'
+              '\n'
               'n\n'
               'y\n'
               'GPL\n'
