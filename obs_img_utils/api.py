@@ -407,11 +407,22 @@ class OBSImageUtil(object):
         self._image_release = version.obs_build
 
     @retry(DownloadMetadataFileExceptionOBS)
-    def get_image_packages_metadata(self):
+    def get_image_packages_metadata(self) -> dict:
+        has_error = None
+        result_packages = {}
         try:
             result_packages = self.parse_report_file()
         except DownloadMetadataFileExceptionOBS:
-            result_packages = self.parse_packages_file()
+            try:
+                result_packages = self.parse_packages_file()
+            except DownloadMetadataFileExceptionOBS as issue:
+                has_error = issue
+
+        if self.conditions and has_error:
+            self.log_callback.error(
+                f'Cannot verify {self.conditions} without metadata'
+            )
+            raise OBSImageConditionsException(has_error)
 
         return result_packages
 
