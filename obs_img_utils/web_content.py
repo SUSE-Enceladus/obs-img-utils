@@ -27,7 +27,7 @@ from urllib.request import (
     urlopen,
     Request
 )
-from pkg_resources import parse_version
+import packaging.version as pv
 
 
 class WebContent(object):
@@ -174,7 +174,7 @@ class WebContent(object):
                     chosen_tuple = (filename, extension)
                     continue
 
-                if parse_version(new_version) > parse_version(highest_version):
+                if pv.Version(new_version) > pv.Version(highest_version):
                     highest_version = new_version
                     chosen_tuple = (filename, extension)
         return chosen_tuple

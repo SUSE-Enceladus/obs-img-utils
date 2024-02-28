@@ -24,8 +24,8 @@ from obs_img_utils.api import OBSImageUtil, package_type
 from obs_img_utils.exceptions import PackageVersionExceptionOBS
 
 
-class TestAPI(object):
-    def setup(self):
+class TestAPI:
+    def setup_method(self, cls):
         self.downloader = OBSImageUtil(
             'https://provo-mirror.opensuse.org/repositories/',
             'openSUSE-Leap-15.0-Azure',
