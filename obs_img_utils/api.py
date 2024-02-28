@@ -26,7 +26,7 @@ import xmltodict
 
 from collections import namedtuple
 from distutils.dir_util import mkpath
-from pkg_resources import parse_version
+import packaging.version as pv
 from urllib.error import ContentTooShortError, URLError
 
 from obs_img_utils.exceptions import (
@@ -479,15 +479,15 @@ class OBSImageUtil(object):
             current = 'unknown'
 
         if condition == '>=':
-            return parse_version(current) >= parse_version(expected)
+            return pv.Version(current) >= pv.Version(expected)
         elif condition == '<=':
-            return parse_version(current) <= parse_version(expected)
+            return pv.Version(current) <= pv.Version(expected)
         elif condition == '==':
-            return parse_version(current) == parse_version(expected)
+            return pv.Version(current) == pv.Version(expected)
         elif condition == '>':
-            return parse_version(current) > parse_version(expected)
+            return pv.Version(current) > pv.Version(expected)
         elif condition == '<':
-            return parse_version(current) < parse_version(expected)
+            return pv.Version(current) < pv.Version(expected)
         else:
             raise PackageVersionExceptionOBS(
                 'Invalid version compare expression: "{0}"'.format(condition)
