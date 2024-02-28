@@ -25,16 +25,13 @@ from obs_img_utils.exceptions import PackageVersionExceptionOBS
 
 
 class TestAPI:
-    def setup(self):
+    def setup_method(self, cls):
         self.downloader = OBSImageUtil(
             'https://provo-mirror.opensuse.org/repositories/',
             'openSUSE-Leap-15.0-Azure',
             arch='x86_64',
             target_directory='tests/data'
         )
-
-    def setup_method(self, cls):
-        self.setup()
 
     def test_version_compare(self):
         result = self.downloader._version_compare('1.0', '2.0', '<=')
