@@ -1,3 +1,10 @@
+v1.3.0 (2024-05-08)
+===================
+
+- Do not raise if image metadata not found unless conditions are provided
+- Cleanup tests and rename setup method
+- Update readthedocs config file
+
 v1.2.0 (2023-03-06)
 ===================
 - Adds new required extension (vmdk.xz) for images
