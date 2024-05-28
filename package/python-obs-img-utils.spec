@@ -106,7 +106,7 @@ export LANG=en_US.utf-8
 %pytest
 %endif
 
-%files
+%files %{python_files}
 %defattr(-,root,root)
 %license LICENSE
 %doc CHANGES.md CONTRIBUTING.md README.md
