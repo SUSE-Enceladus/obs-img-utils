@@ -1,3 +1,9 @@
+v1.4.0 (2024-05-28)
+===================
+
+- Update python version support and CI testing
+- Update spec for pyton 3.11 build
+
 v1.3.0 (2024-05-08)
 ===================
 
