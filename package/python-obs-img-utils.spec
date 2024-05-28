@@ -1,5 +1,5 @@
 #
-# spec file for package python3-obs-img-utils
+# spec file for package python-obs-img-utils
 #
 # Copyright (c) 2019 SUSE LINUX GmbH, Nuernberg, Germany.
 #
@@ -15,9 +15,18 @@
 # Please submit bugfixes or comments via http://bugs.opensuse.org/
 #
 
-
+%define upstream_name obs-img-utils
+%define python python
+%{?sle15_python_module_pythons}
 %bcond_without test
-Name:           python3-obs-img-utils
+
+%if 0%{?suse_version} > 1500
+%bcond_without libalternatives
+%else
+%bcond_with libalternatives
+%endif
+
+Name:           python-obs-img-utils
 Version:        1.3.0
 Release:        0
 Summary:        API and CLI utilities for images in OBS
@@ -26,23 +35,36 @@ Group:          Development/Languages/Python
 Url:            https://github.com/SUSE-Enceladus/obs-img-utils
 Source:         https://files.pythonhosted.org/packages/source/o/obs-img-utils/obs-img-utils-%{version}.tar.gz
 BuildRequires:  python-rpm-macros
-BuildRequires:  python3-devel
-BuildRequires:  python3-setuptools
-BuildRequires:  python3-click-man
-BuildRequires:  python3-click
-BuildRequires:  python3-PyYAML
-BuildRequires:  python3-lxml
-BuildRequires:  python3-xmltodict
+BuildRequires:  fdupes
+BuildRequires:  %{python_module devel}
+BuildRequires:  %{python_module pip}
+BuildRequires:  %{python_module setuptools}
+BuildRequires:  %{python_module wheel}
+BuildRequires:  %{python_module click-man}
+BuildRequires:  %{python_module click}
+BuildRequires:  %{python_module PyYAML}
+BuildRequires:  %{python_module lxml}
+BuildRequires:  %{python_module xmltodict}
 %if %{with test}
-BuildRequires:  python3-coverage
-BuildRequires:  python3-pytest
-BuildRequires:  python3-pytest-cov
+BuildRequires:  %{python_module pytest}
 %endif
-Requires:       python3-PyYAML
-Requires:       python3-click
-Requires:       python3-lxml
-Requires:       python3-xmltodict
+Requires:       python-PyYAML
+Requires:       python-click
+Requires:       python-lxml
+Requires:       python-xmltodict
+
+%if %{with libalternatives}
+BuildRequires:  alts
+Requires:       alts
+%else
+Requires(post): update-alternatives
+Requires(postun): update-alternatives
+%endif
+
 BuildArch:      noarch
+Provides:       python3-obs-img-utils = %{version}
+Obsoletes:      python3-obs-img-utils < %{version}
+%python_subpackages
 
 %description
 API and CLI utilities for images in OBS.
@@ -54,23 +76,34 @@ Provides the following commands:
 - Get version info for a specific package
 
 %prep
-%setup -q -n obs-img-utils-%{version}
+%autosetup -n obs-img-utils-%{version}
 
 %build
-python3 setup.py build
+%pyproject_wheel
 mkdir -p man/man1
-python3 setup.py --command-packages=click_man.commands man_pages --target man/man1
+%python_exec setup.py --command-packages=click_man.commands man_pages --target man/man1
 
 %install
-python3 setup.py install --prefix=%{_prefix} --root=%{buildroot}
+%pyproject_install
 install -d -m 755 %{buildroot}/%{_mandir}/man1
 install -m 644 man/man1/*.1 %{buildroot}/%{_mandir}/man1
+%python_clone -a %{buildroot}%{_bindir}/obs-img-utils
+%{python_expand %fdupes %{buildroot}%{$python_sitelib}}
+
+%pre
+%python_libalternatives_reset_alternative obs-img-utils
+
+%post
+%{python_install_alternative obs-img-utils}
+
+%postun
+%{python_uninstall_alternative obs-img-utils}
 
 %check
 %if %{with test}
 export LC_ALL=en_US.utf-8
 export LANG=en_US.utf-8
-python3 -m pytest --cov=obs_img_utils
+%pytest
 %endif
 
 %files
@@ -78,7 +111,7 @@ python3 -m pytest --cov=obs_img_utils
 %license LICENSE
 %doc CHANGES.md CONTRIBUTING.md README.md
 %{_mandir}/man1/*
-%{_bindir}/obs-img-utils
-%{python3_sitelib}/*
+%python_alternative %{_bindir}/obs-img-utils
+%{python_sitelib}/*
 
 %changelog
