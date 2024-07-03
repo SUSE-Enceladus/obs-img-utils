@@ -23,17 +23,16 @@ import os
 import re
 import time
 import xmltodict
+import rpm
 
 from collections import namedtuple
 from distutils.dir_util import mkpath
-import packaging.version as pv
 from urllib.error import ContentTooShortError, URLError
 
 from obs_img_utils.exceptions import (
     OBSImageDownloadException,
     DownloadMetadataFileExceptionOBS,
     OBSImageConditionsException,
-    PackageVersionExceptionOBS,
     OBSImageChecksumException,
     OBSImageVersionException
 )
@@ -489,20 +488,16 @@ class OBSImageUtil(object):
         if not current:
             current = 'unknown'
 
-        if condition == '>=':
-            return pv.Version(current) >= pv.Version(expected)
-        elif condition == '<=':
-            return pv.Version(current) <= pv.Version(expected)
-        elif condition == '==':
-            return pv.Version(current) == pv.Version(expected)
-        elif condition == '>':
-            return pv.Version(current) > pv.Version(expected)
-        elif condition == '<':
-            return pv.Version(current) < pv.Version(expected)
+        result = rpm.labelCompare(current, expected)
+
+        if condition in ('>=', '<=', '==') and result == 0:
+            return True
+        elif condition in ('<=', '<') and result < 0:
+            return True
+        elif condition in ('>=', '>') and result > 0:
+            return True
         else:
-            raise PackageVersionExceptionOBS(
-                'Invalid version compare expression: "{0}"'.format(condition)
-            )
+            return False
 
     def _lookup_package(self, packages, condition):
         package_name = condition['package_name']
@@ -533,8 +528,8 @@ class OBSImageUtil(object):
                     )
                 )
 
-    def _combine_version(self, version, release):
-        return '.'.join(filter(None, [version, release])) or 'unknown'
+    def _combine_version(self, name, version, release):
+        return tuple(filter(None, (name, version, release)))
 
     def _check_version_and_build_condition(
         self,
@@ -547,10 +542,12 @@ class OBSImageUtil(object):
 
         if 'version' in condition and 'release' in condition:
             combined_version = self._combine_version(
+                name,
                 current_version,
                 current_release
             )
             expected_version = self._combine_version(
+                name,
                 condition['version'],
                 condition['release']
             )
@@ -573,10 +570,21 @@ class OBSImageUtil(object):
                 )
                 return False
         elif 'version' in condition:
+            combined_version = self._combine_version(
+                name,
+                current_version,
+                '0'
+            )
+            expected_version = self._combine_version(
+                name,
+                condition['version'],
+                '0'
+            )
+
             # we want to lookup a specific version
             condition_is_valid = self._version_compare(
-                current_version,
-                condition['version'],
+                combined_version,
+                expected_version,
                 condition_eval
             )
 
@@ -592,10 +600,21 @@ class OBSImageUtil(object):
                 )
                 return False
         elif 'release' in condition:
+            combined_version = self._combine_version(
+                name,
+                '0',
+                current_release
+            )
+            expected_version = self._combine_version(
+                name,
+                '0',
+                condition['release']
+            )
+
             # we want to lookup a specific release number
             condition_is_valid = self._version_compare(
-                current_release,
-                condition['release'],
+                combined_version,
+                expected_version,
                 condition_eval
             )
 

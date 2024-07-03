@@ -45,6 +45,7 @@ BuildRequires:  %{python_module click}
 BuildRequires:  %{python_module PyYAML}
 BuildRequires:  %{python_module lxml}
 BuildRequires:  %{python_module xmltodict}
+BuildRequires:  %{python_module rpm}
 %if %{with test}
 BuildRequires:  %{python_module pytest}
 %endif
@@ -52,6 +53,7 @@ Requires:       python-PyYAML
 Requires:       python-click
 Requires:       python-lxml
 Requires:       python-xmltodict
+Requires:       python-rpm
 
 %if %{with libalternatives}
 BuildRequires:  alts
