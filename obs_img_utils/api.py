@@ -489,20 +489,36 @@ class OBSImageUtil(object):
         if not current:
             current = 'unknown'
 
-        if condition == '>=':
-            return pv.Version(current) >= pv.Version(expected)
-        elif condition == '<=':
-            return pv.Version(current) <= pv.Version(expected)
-        elif condition == '==':
-            return pv.Version(current) == pv.Version(expected)
-        elif condition == '>':
-            return pv.Version(current) > pv.Version(expected)
-        elif condition == '<':
-            return pv.Version(current) < pv.Version(expected)
-        else:
-            raise PackageVersionExceptionOBS(
-                'Invalid version compare expression: "{0}"'.format(condition)
-            )
+        try:
+            if condition == '>=':
+                return pv.Version(current) >= pv.Version(expected)
+            elif condition == '<=':
+                return pv.Version(current) <= pv.Version(expected)
+            elif condition == '==':
+                return pv.Version(current) == pv.Version(expected)
+            elif condition == '>':
+                return pv.Version(current) > pv.Version(expected)
+            elif condition == '<':
+                return pv.Version(current) < pv.Version(expected)
+            else:
+                raise PackageVersionExceptionOBS(
+                    'Invalid version compare expression: "{0}"'.format(
+                        condition
+                    )
+                )
+        except pv.InvalidVersion as e:
+            if (
+                '=' in condition and
+                current == expected
+            ):
+                # Not a valid semVer, but the condition matches
+                return True
+            else:
+                raise PackageVersionExceptionOBS(
+                    'Invalid version compare expression: "{0}"'.format(
+                        condition
+                    )
+                )
 
     def _lookup_package(self, packages, condition):
         package_name = condition['package_name']
