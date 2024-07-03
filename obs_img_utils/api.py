@@ -506,7 +506,7 @@ class OBSImageUtil(object):
                         condition
                     )
                 )
-        except pv.InvalidVersion as e:
+        except pv.InvalidVersion:
             if (
                 '=' in condition and
                 current == expected
