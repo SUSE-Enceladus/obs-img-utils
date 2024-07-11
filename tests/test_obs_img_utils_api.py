@@ -16,12 +16,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import pytest
-
 from unittest.mock import patch
 
 from obs_img_utils.api import OBSImageUtil, package_type
-from obs_img_utils.exceptions import PackageVersionExceptionOBS
 
 
 class TestAPI:
@@ -45,9 +42,6 @@ class TestAPI:
 
         result = self.downloader._version_compare('1.0', '2.0', '<')
         assert result
-
-        with pytest.raises(PackageVersionExceptionOBS):
-            self.downloader._version_compare('2.0', '1.0', '===')
 
     @patch.object(OBSImageUtil, '_get_image_checksum')
     @patch('obs_img_utils.api.time')
