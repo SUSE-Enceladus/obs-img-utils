@@ -16,73 +16,165 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import re
-from itertools import zip_longest
 
-# RPM version comparison adapted from:
-# https://stackoverflow.com/questions/3206319/how-do-i-compare-rpm-versions-in-python/42967591#42967591
-
-# Emulate RPM field comparisons
-#
-# * Search each string for alphabetic fields [a-zA-Z]+ and
-#   numeric fields [0-9]+ separated by junk [^a-zA-Z0-9]*.
-# * Successive fields in each string are compared to each other.
-# * Alphabetic sections are compared lexicographically, and the
-#   numeric sections are compared numerically.
-# * In the case of a mismatch where one field is numeric and one is
-#   alphabetic, the numeric field is always considered greater (newer).
-# * In the case where one string runs out of fields, the other is always
-#   considered greater (newer).
+# Globals
+A_IS_NEWER = 1
+A_EQUALS_B = 0
+B_IS_NEWER = -1
 
 
-_subfield_pattern = re.compile(
-    r"(?P<junk>[^a-zA-Z0-9]*)((?P<text>[a-zA-Z]+)|(?P<num>[0-9]+))"
-)
-
-
-def _iter_rpm_subfields(field):
-    """Yield subfields as 2-tuples that sort in the desired order
-    Text subfields are yielded as (0, text_value)
-    Numeric subfields are yielded as (1, int_value)
+def _compare_segment(segment_a, segment_b):
     """
-    for subfield in _subfield_pattern.finditer(field):
-        text = subfield.group("text")
-        if text is not None:
-            yield (0, text)
+    Compares 2 segments of a version tag
+    """
+    if segment_a[0].isdigit():
+        _remove_leading_zeroes(segment_a)
+        _remove_leading_zeroes(segment_b)
+        if len(segment_a) > len(segment_b):
+            return A_IS_NEWER
+        elif len(segment_a) < len(segment_b):
+            return B_IS_NEWER
+    if segment_a == segment_b:
+        return A_EQUALS_B
+    else:
+        if segment_a > segment_b:
+            return A_IS_NEWER
         else:
-            yield (1, int(subfield.group("num")))
+            return B_IS_NEWER
+
+def _pop_digits(char_list):
+    """Pops the leading digits of a char list"""
+    digits = []
+    while (
+        len(char_list) != 0 and
+        char_list[0].isdigit()
+    ):
+        digits.append(char_list.pop(0))
+    return digits
 
 
-def _compare_rpm_field(lhs, rhs):
-    # Short circuit for exact matches (including both being None)
-    if lhs == rhs:
-        return 0
-    # Otherwise assume both inputs are strings
-    lhs_subfields = _iter_rpm_subfields(lhs)
-    rhs_subfields = _iter_rpm_subfields(rhs)
-    for lhs_sf, rhs_sf in zip_longest(lhs_subfields, rhs_subfields):
-        if lhs_sf == rhs_sf:
-            # When both subfields are the same, move to next subfield
-            continue
-        if lhs_sf is None:
-            # Fewer subfields in LHS, so it's less than/older than RHS
-            return -1
-        if rhs_sf is None:
-            # More subfields in LHS, so it's greater than/newer than RHS
-            return 1
-        # Found a differing subfield, so it determines the relative order
-        return -1 if lhs_sf < rhs_sf else 1
-    # No relevant differences found between LHS and RHS
-    return 0
+def _pop_letters(char_list):
+    """Pops the leading letters of a char list"""
+    letters = []
+    while (
+        len(char_list) != 0 and
+        char_list[0].isalpha()
+    ):
+        letters.append(char_list.pop(0))
+    return letters
 
 
-def compare_rpm_labels(lhs, rhs):
-    lhs_epoch, lhs_version, lhs_release = lhs
-    rhs_epoch, rhs_version, rhs_release = rhs
-    result = _compare_rpm_field(lhs_epoch, rhs_epoch)
-    if result:
-        return result
-    result = _compare_rpm_field(lhs_version, rhs_version)
-    if result:
-        return result
-    return _compare_rpm_field(lhs_release, rhs_release)
+def _pop_segments_and_compare(chars_a, chars_b):
+    """Pops the next segment of the tag and returns the compared value"""
+    first_is_digit = chars_a[0].isdigit()
+    if first_is_digit:
+        segment_a = _pop_digits(chars_a)
+        segment_b = _pop_digits(chars_b)
+    else:
+        segment_a = _pop_letters(chars_a)
+        segment_b = _pop_letters(chars_b)
+
+    # B segment length is 0 if:
+    # - a starts with digit and b with letter
+    # - vice-versa
+    if len(segment_b) == 0:
+        if first_is_digit:
+            return A_IS_NEWER
+        return B_IS_NEWER
+    compare_segment_result = _compare_segment(segment_a, segment_b)
+    return compare_segment_result
+
+
+def _remove_non_alphanumeric_start(char_list):
+    """Removes non-alphanumeric or non-~ leading characters"""
+    while len(char_list) != 0:
+        if (
+            (
+                char_list[0].isalnum() and
+                char_list[0].isascii()
+            ) or
+            char_list[0] == '~' or
+            char_list[0] == '^'
+        ):
+            return
+        char_list.pop(0)
+
+
+def _remove_leading_zeroes(char_list):
+    """Removes the leading zeroes of a char list"""
+    while (
+        len(char_list) !=0 and
+        char_list[0] == '0'
+    ):
+        char_list.pop(0)
+
+
+def compare_version(a_tag, b_tag):
+    """Compares one version string to another"""
+    if a_tag == b_tag:
+        return A_EQUALS_B
+
+    chars_a, chars_b = list(a_tag), list(b_tag)
+    while len(chars_a) != 0 and len(chars_b) != 0:
+        _remove_non_alphanumeric_start(chars_a)
+        _remove_non_alphanumeric_start(chars_b)
+
+        if len(chars_a) == 0 or len(chars_b) == 0:
+            break
+
+        if (
+            ( chars_a[0] == '~' and chars_b[0] == '~' ) or
+            ( chars_a[0] == '^' and chars_b[0] == '^' )
+        ):
+            chars_a.pop(0)
+            chars_b.pop(0)
+        elif chars_a[0] == '~':
+            return B_IS_NEWER
+        elif chars_b[0] == '~':
+            return A_IS_NEWER
+        elif chars_a[0] == '^':
+            if len(chars_b) == 0:
+                # If A is a snapshot(^) and B the base version
+                # A is newer
+                return A_IS_NEWER
+            else:
+                # A is a snapshot but B has more fields
+                # B is newer
+                B_IS_NEWER
+        elif chars_b[0] == '^':
+            if len(chars_a) == 0:
+                return B_IS_NEWER
+            else:
+                A_IS_NEWER
+
+        segment_result = _pop_segments_and_compare(chars_a, chars_b)
+        if segment_result != A_EQUALS_B:
+            return segment_result
+    if len(chars_a) == len(chars_b):
+        return A_EQUALS_B
+
+    if len(chars_a) > len(chars_b):
+        if chars_a[0] == '~':
+            return B_IS_NEWER
+        else:
+            return A_IS_NEWER
+    else:
+        if chars_b[0] == '~':
+            return A_IS_NEWER
+        else:
+            return B_IS_NEWER
+
+
+def compare_rpm_labels(a_label, b_label):
+    """ Compares tuples of epoch, version and release"""
+    a_epoch, a_version, a_release = a_label
+    b_epoch, b_version, b_release = b_label
+
+    if a_epoch != b_epoch:
+        return A_IS_NEWER if a_epoch > b_epoch else B_IS_NEWER
+
+    version_compare = compare_version(a_version, b_version)
+    if version_compare != A_EQUALS_B:
+        return version_compare
+    release_compare = compare_version(a_release, b_release)
+    return release_compare
