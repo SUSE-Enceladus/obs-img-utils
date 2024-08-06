@@ -42,6 +42,7 @@ def _compare_segment(segment_a, segment_b):
         else:
             return B_IS_NEWER
 
+
 def _pop_digits(char_list):
     """Pops the leading digits of a char list"""
     digits = []
@@ -103,7 +104,7 @@ def _remove_non_alphanumeric_start(char_list):
 def _remove_leading_zeroes(char_list):
     """Removes the leading zeroes of a char list"""
     while (
-        len(char_list) !=0 and
+        len(char_list) != 0 and
         char_list[0] == '0'
     ):
         char_list.pop(0)
@@ -123,8 +124,8 @@ def compare_version(a_tag, b_tag):
             break
 
         if (
-            ( chars_a[0] == '~' and chars_b[0] == '~' ) or
-            ( chars_a[0] == '^' and chars_b[0] == '^' )
+            (chars_a[0] == '~' and chars_b[0] == '~') or
+            (chars_a[0] == '^' and chars_b[0] == '^')
         ):
             chars_a.pop(0)
             chars_b.pop(0)

@@ -21,6 +21,7 @@ import pytest
 
 from obs_img_utils.rpm import compare_rpm_labels
 
+
 @pytest.mark.parametrize(
     "a_version_tag, b_version_tag, expected_output",
     [
