@@ -26,17 +26,16 @@ import xmltodict
 
 from collections import namedtuple
 from distutils.dir_util import mkpath
-import packaging.version as pv
 from urllib.error import ContentTooShortError, URLError
 
 from obs_img_utils.exceptions import (
     OBSImageDownloadException,
     DownloadMetadataFileExceptionOBS,
     OBSImageConditionsException,
-    PackageVersionExceptionOBS,
     OBSImageChecksumException,
     OBSImageVersionException
 )
+from obs_img_utils.rpm import compare_rpm_labels
 from obs_img_utils.utils import (
     defaults,
     retry,
@@ -489,20 +488,19 @@ class OBSImageUtil(object):
         if not current:
             current = 'unknown'
 
-        if condition == '>=':
-            return pv.Version(current) >= pv.Version(expected)
-        elif condition == '<=':
-            return pv.Version(current) <= pv.Version(expected)
-        elif condition == '==':
-            return pv.Version(current) == pv.Version(expected)
-        elif condition == '>':
-            return pv.Version(current) > pv.Version(expected)
-        elif condition == '<':
-            return pv.Version(current) < pv.Version(expected)
-        else:
-            raise PackageVersionExceptionOBS(
-                'Invalid version compare expression: "{0}"'.format(condition)
-            )
+        # compare_rpm_labels expects triplets (epoch, version, release)
+        # comparing the whole tag as versions is enough for our needs
+        result = compare_rpm_labels(
+            (0, current, '0'),
+            (0, expected, '0')
+        )
+
+        if condition in ('>=', '<=', '==') and result == 0:
+            return True
+        elif condition in ('<=', '<') and result < 0:
+            return True
+        elif condition in ('>=', '>') and result > 0:
+            return True
 
     def _lookup_package(self, packages, condition):
         package_name = condition['package_name']
@@ -573,10 +571,19 @@ class OBSImageUtil(object):
                 )
                 return False
         elif 'version' in condition:
+            combined_version = self._combine_version(
+                current_version,
+                '0'
+            )
+            expected_version = self._combine_version(
+                condition['version'],
+                '0'
+            )
+
             # we want to lookup a specific version
             condition_is_valid = self._version_compare(
-                current_version,
-                condition['version'],
+                combined_version,
+                expected_version,
                 condition_eval
             )
 
@@ -592,10 +599,18 @@ class OBSImageUtil(object):
                 )
                 return False
         elif 'release' in condition:
+            combined_version = self._combine_version(
+                '0',
+                current_release,
+            )
+            expected_version = self._combine_version(
+                '0',
+                condition['release']
+            )
             # we want to lookup a specific release number
             condition_is_valid = self._version_compare(
-                current_release,
-                condition['release'],
+                combined_version,
+                expected_version,
                 condition_eval
             )
 
