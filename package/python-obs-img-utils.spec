@@ -27,7 +27,7 @@
 %endif
 
 Name:           python-obs-img-utils
-Version:        1.4.0
+Version:        1.5.0
 Release:        0
 Summary:        API and CLI utilities for images in OBS
 License:        GPL-3.0-or-later
