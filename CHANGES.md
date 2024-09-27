@@ -1,3 +1,8 @@
+v1.5.0 (2024-09-27)
+===================
+
+- Implements new functions to compare rmp version tags
+
 v1.4.0 (2024-05-28)
 ===================
 
