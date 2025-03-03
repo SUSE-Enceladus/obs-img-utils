@@ -181,12 +181,12 @@ def compare_rpm_labels(a_label, b_label):
     return release_compare
 
 
-def isascii(string):
+def isascii(string_to_check):
     """
     Returns a boolean indicating if string provided is ascii or not.
     Python 3.6 compatible
     """
     try:
-        return string.isascii()
+        return string_to_check.isascii()
     except AttributeError:
-        return all([ord(c) < 128 for c in string])
+        return all([ord(c) < 128 for c in string_to_check])
