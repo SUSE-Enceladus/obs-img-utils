@@ -92,7 +92,7 @@ def _remove_non_alphanumeric_start(char_list):
         if (
             (
                 char_list[0].isalnum() and
-                char_list[0].isascii()
+                isascii(char_list[0])
             ) or
             char_list[0] == '~' or
             char_list[0] == '^'
@@ -179,3 +179,14 @@ def compare_rpm_labels(a_label, b_label):
         return version_compare
     release_compare = compare_version(a_release, b_release)
     return release_compare
+
+
+def isascii(string):
+    """
+    Returns a boolean indicating if string provided is ascii or not.
+    Python 3.6 compatible
+    """
+    try:
+        return string.isascii()
+    except AttributeError:
+        return all([ord(c) < 128 for c in string])
