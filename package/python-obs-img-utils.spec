@@ -24,7 +24,7 @@
 %global _sitelibdir %{%{pythons}_sitelib}
 
 Name:           python-obs-img-utils
-Version:        1.5.0
+Version:        1.6.0
 Release:        0
 Summary:        API and CLI utilities for images in OBS
 License:        GPL-3.0-or-later
