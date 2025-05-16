@@ -76,7 +76,7 @@ mkdir -p man/man1
 install -d -m 755 %{buildroot}/%{_mandir}/man1
 install -m 644 man/man1/*.1 %{buildroot}/%{_mandir}/man1
 %python_clone -a %{buildroot}%{_bindir}/obs-img-utils
-%python_expand %fdupes %{buildroot}%{_sitelidir}
+%fdupes %{buildroot}%{_sitelidir}
 
 %check
 %if %{with test}
