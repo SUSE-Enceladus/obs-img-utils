@@ -1,3 +1,9 @@
+v1.6.0 (2025-05-16)
+===================
+
+- Makes the functions in rpm.py file compatible with python 3.6
+- Build for only one version of python
+
 v1.5.0 (2024-09-27)
 ===================
 
