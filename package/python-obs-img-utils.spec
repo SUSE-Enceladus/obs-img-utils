@@ -34,6 +34,7 @@ Source:         https://files.pythonhosted.org/packages/source/o/obs-img-utils/o
 BuildRequires:  python-rpm-macros
 BuildRequires:  fdupes
 BuildRequires:  %{pythons}-devel
+BuildRequires:  %{pythons}-packaging
 BuildRequires:  %{pythons}-pip
 BuildRequires:  %{pythons}-setuptools
 BuildRequires:  %{pythons}-wheel
@@ -49,6 +50,7 @@ Requires:       %{pythons}-PyYAML
 Requires:       %{pythons}-click
 Requires:       %{pythons}-lxml
 Requires:       %{pythons}-xmltodict
+Requires:       %{pythons}-packaging
 
 BuildArch:      noarch
 Provides:       python3-obs-img-utils = %{version}
