@@ -1,0 +1,50 @@
+.TH "OBS-IMG-UTILS PACKAGES LIST" "1" "2025-05-19" "1.8.0" "obs-img-utils packages list Manual"
+.SH NAME
+obs-img-utils\-packages\-list \- Return a list of packages for the given...
+.SH SYNOPSIS
+.B obs-img-utils packages list
+[OPTIONS]
+.SH DESCRIPTION
+.PP
+    Return a list of packages for the given image name.
+    
+.SH OPTIONS
+.TP
+\fB\-\-filter\-licenses\fP
+Invoke license REPL to specify license filters
+.TP
+\fB\-\-filter\-packages\fP
+Invoke packages REPL to specify package name filters
+.TP
+\fB\-\-output\fP [text|json]
+The output format (text|json)
+.TP
+\fB\-\-no\-headers\fP
+Do not print headers in text output
+.TP
+\fB\-C,\fP \-\-config PATH
+OBS Image utils config file to use. Default: ~/.config/obs_img_utils/config.yaml
+.TP
+\fB\-\-no\-color\fP
+Remove ANSI color and styling from output.
+.TP
+\fB\-\-debug,\fP \-\-verbose
+Display debug level logging to console.
+.TP
+\fB\-\-quiet\fP
+Disable console output.
+.TP
+\fB\-\-download\-url\fP TEXT
+URL for OBS download repository.
+.TP
+\fB\-\-target\-dir\fP PATH
+Directory to store downloaded images and checksums.
+.TP
+\fB\-\-image\-name\fP TEXT
+Image name to download from the download-url.  [required]
+.TP
+\fB\-\-arch\fP [x86_64|aarch64]
+Architecture of the image.
+.TP
+\fB\-\-profile\fP TEXT
+The multibuild profile name for the image.

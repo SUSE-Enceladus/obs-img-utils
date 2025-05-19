@@ -1,0 +1,59 @@
+.TH "OBS-IMG-UTILS DOWNLOAD" "1" "2025-05-19" "1.8.0" "obs-img-utils download Manual"
+.SH NAME
+obs-img-utils\-download \- Download image from OBS repository...
+.SH SYNOPSIS
+.B obs-img-utils download
+[OPTIONS]
+.SH DESCRIPTION
+.PP
+    Download image from OBS repository specified by `download-url`.
+    
+.SH OPTIONS
+.TP
+\fB\-\-add\-conditions\fP
+Invoke conditions process to specify conditions for image
+.TP
+\fB\-\-conditions\-wait\-time\fP INTEGER
+Time (in seconds) to wait for conditions to be met. Retry period is 150 seconds and default is 0 seconds for no wait.
+.TP
+\fB\-\-extension\fP TEXT
+Image file extension. Examples: [tar.gz, raw.xz]
+.TP
+\fB\-\-checksum\-extension\fP TEXT
+Image checksum file extension. Example: sha256
+.TP
+\fB\-\-disallow\-licenses\fP
+Invoke license REPL to specify any licenses that should not be in the image.
+.TP
+\fB\-\-disallow\-packages\fP
+Invoke packages REPL to specify any packages which  should not be in the image. This can use a wildcard (*) to match a naming pattern like "*-mini".
+.TP
+\fB\-\-skip\-checksum\-validation\fP
+Skip the image checksum validation.
+.TP
+\fB\-C,\fP \-\-config PATH
+OBS Image utils config file to use. Default: ~/.config/obs_img_utils/config.yaml
+.TP
+\fB\-\-no\-color\fP
+Remove ANSI color and styling from output.
+.TP
+\fB\-\-debug,\fP \-\-verbose
+Display debug level logging to console.
+.TP
+\fB\-\-quiet\fP
+Disable console output.
+.TP
+\fB\-\-download\-url\fP TEXT
+URL for OBS download repository.
+.TP
+\fB\-\-target\-dir\fP PATH
+Directory to store downloaded images and checksums.
+.TP
+\fB\-\-image\-name\fP TEXT
+Image name to download from the download-url.  [required]
+.TP
+\fB\-\-arch\fP [x86_64|aarch64]
+Architecture of the image.
+.TP
+\fB\-\-profile\fP TEXT
+The multibuild profile name for the image.

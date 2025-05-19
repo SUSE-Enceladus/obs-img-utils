@@ -29,8 +29,8 @@ Release:        0
 Summary:        API and CLI utilities for images in OBS
 License:        GPL-3.0-or-later
 Group:          Development/Languages/Python
-Url:            https://github.com/SUSE-Enceladus/obs-img-utils
-Source:         https://files.pythonhosted.org/packages/source/o/obs-img-utils/obs-img-utils-%{version}.tar.gz
+Url:            https://github.com/SUSE-Enceladus/%{upstream_name}
+Source:         https://files.pythonhosted.org/packages/source/o/%{upstream_name}/%{upstream_name}-%{version}.tar.gz
 BuildRequires:  python-rpm-macros
 BuildRequires:  fdupes
 BuildRequires:  %{pythons}-devel
@@ -38,7 +38,6 @@ BuildRequires:  %{pythons}-packaging
 BuildRequires:  %{pythons}-pip
 BuildRequires:  %{pythons}-setuptools
 BuildRequires:  %{pythons}-wheel
-BuildRequires:  %{pythons}-click-man
 BuildRequires:  %{pythons}-click
 BuildRequires:  %{pythons}-PyYAML
 BuildRequires:  %{pythons}-lxml
@@ -66,18 +65,16 @@ Provides the following commands:
 - Get version info for a specific package
 
 %prep
-%autosetup -n obs-img-utils-%{version}
+%autosetup -n %{upstream_name}-%{version}
 
 %build
 %pyproject_wheel
-mkdir -p man/man1
-%python_exec setup.py --command-packages=click_man.commands man_pages --target man/man1
 
 %install
 %pyproject_install
 install -d -m 755 %{buildroot}/%{_mandir}/man1
 install -m 644 man/man1/*.1 %{buildroot}/%{_mandir}/man1
-%fdupes %{buildroot}%{_sitelidir}
+%fdupes %{buildroot}%{_sitelibdir}
 
 %check
 %if %{with test}
@@ -90,8 +87,12 @@ export LANG=en_US.utf-8
 %defattr(-,root,root)
 %license LICENSE
 %doc CHANGES.md CONTRIBUTING.md README.md
-%{_mandir}/man1/*
-%{_bindir}/obs-img-utils
+%{_mandir}/man1/obs-img-utils-download.1%{?ext_man}
+%{_mandir}/man1/obs-img-utils-packages-list.1%{?ext_man}
+%{_mandir}/man1/obs-img-utils-packages-show.1%{?ext_man}
+%{_mandir}/man1/obs-img-utils-packages.1%{?ext_man}
+%{_mandir}/man1/obs-img-utils.1%{?ext_man}
+%{_bindir}/%{upstream_name}
 %{_sitelibdir}/obs_img_utils/
 %{_sitelibdir}/obs_img_utils-*.dist-info/
 
