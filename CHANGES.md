@@ -1,3 +1,10 @@
+v1.10.0 (2025-08-04)
+===================
+
+- Cleanup docs build
+- Update config options for changes in sphinx config format.
+- Cleanup docstring attr format
+
 v1.9.0 (2025-05-19)
 ===================
 
