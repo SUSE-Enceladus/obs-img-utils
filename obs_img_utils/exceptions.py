@@ -25,7 +25,8 @@ class OBSImageUtilsException(Exception):
     of OBSImageUtilsException.
 
     Attributes
-    * :attr:`message`
+    ----------
+    message : str
         Exception message text
     """
     def __init__(self, message):
