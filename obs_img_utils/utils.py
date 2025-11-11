@@ -39,7 +39,8 @@ extensions = [
     'raw.xz',
     'tar.gz',
     'qcow2',
-    'vmdk.xz'
+    'vmdk.xz',
+    'vmdk'
 ]
 checksum_extensions = ['sha256']
 signature_extensions = ['asc']
