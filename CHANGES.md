@@ -1,3 +1,8 @@
+v1.11.0 (2025-11-11)
+===================
+
+- Adds .vmdk as accepted file extension for images
+
 v1.10.0 (2025-08-04)
 ===================
 
