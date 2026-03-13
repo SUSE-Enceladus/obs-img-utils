@@ -16,18 +16,23 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from unittest.mock import patch
+import pytest
+from unittest.mock import patch, PropertyMock
 
 from obs_img_utils.api import OBSImageUtil, package_type
+from obs_img_utils.exceptions import (
+    DownloadMetadataFileExceptionOBS
+)
 
 
 class TestAPI:
     def setup_method(self, cls):
         self.downloader = OBSImageUtil(
             'https://provo-mirror.opensuse.org/repositories/',
-            'openSUSE-Leap-15.0-Azure',
+            'openSUSE-Leap-15.0',
             arch='x86_64',
-            target_directory='tests/data'
+            target_directory='tests/data',
+            profile='Azure'
         )
 
     def test_version_compare(self):
@@ -91,3 +96,57 @@ class TestAPI:
         # release mismatch
         result = self.downloader._lookup_package(packages, condition)
         assert result is False
+
+    @patch(
+        'obs_img_utils.api.OBSImageUtil.base_file_name',
+        new_callable=PropertyMock
+    )
+    def test_download_metadata_file(self, mock_base_file_name):
+        mock_base_file_name.return_value = 'image-base-name'
+
+        # Test success (defaults)
+        with patch.object(
+            self.downloader.remote,
+            'fetch_to_dir',
+            return_value='/tmp/metadata'
+        ) as mock_fetch:
+            self.downloader.download_metadata_file()
+            assert self.downloader.image_metadata_file == '/tmp/metadata'
+            mock_fetch.assert_called_with(
+                'image-base-name',
+                self.downloader.base_regex,
+                self.downloader.target_directory,
+                ['report']
+            )
+
+        # Test success (with prefix and ext arguments)
+        prefix = 'test_prefix'
+        ext = 'test_ext'
+        expected_regex = self.downloader.base_regex.replace(
+            '^',
+            f'^{prefix}',
+            1
+        )
+
+        with patch.object(
+            self.downloader.remote,
+            'fetch_to_dir',
+            return_value='/tmp/metadata'
+        ) as mock_fetch:
+            self.downloader.download_metadata_file(ext=ext, prefix=prefix)
+            mock_fetch.assert_called_with(
+                f'{prefix}image-base-name',
+                expected_regex,
+                self.downloader.target_directory,
+                [ext]
+            )
+
+        # Test failure
+        with patch.object(
+            self.downloader.remote,
+            'fetch_to_dir',
+            return_value=None
+        ):
+            with pytest.raises(DownloadMetadataFileExceptionOBS) as error:
+                self.downloader.download_metadata_file()
+            assert 'No image metadata found matching' in str(error.value)

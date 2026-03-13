@@ -358,18 +358,24 @@ class OBSImageUtil(object):
         self._download_image()
         return self.image_source
 
-    def download_metadata_file(self, ext='report'):
+    def download_metadata_file(self, ext='report', prefix=''):
+        base_name = self.base_file_name
+        regex = self.base_regex
+        if prefix:
+            base_name = f"{prefix}{self.base_file_name}"
+            regex = self.base_regex.replace('^', f'^{re.escape(prefix)}', 1)
+
         self.log_callback.debug(
             'Fetching {ext} metadata file for image {name} from {url}'.format(
                 ext=ext,
-                name=self.base_file_name,
+                name=base_name,
                 url=self.download_url
             )
         )
 
         self.image_metadata_file = self.remote.fetch_to_dir(
-            self.base_file_name,
-            self.base_regex,
+            base_name,
+            regex,
             self.target_directory,
             [ext]
         )
@@ -378,7 +384,7 @@ class OBSImageUtil(object):
             raise DownloadMetadataFileExceptionOBS(
                 'No image metadata found matching: {regex}, '
                 'at {url}'.format(
-                    regex=self.base_regex,
+                    regex=regex,
                     url=self.download_url
                 )
             )
