@@ -1,3 +1,8 @@
+v1.12.0 (2026-03-17)
+===================
+
+- Implements the option to download metadata files with a prefix
+
 v1.11.0 (2025-11-11)
 ===================
 
