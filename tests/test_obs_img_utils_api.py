@@ -159,8 +159,8 @@ class TestAPI:
             '<binary name="NetworkManager-libnm" epoch="1" version="1.30.0" '
             'release="7.el8" binaryarch="x86_64" license="LGPLv2+" '
             'project="SUSE:RES-8:EPAM" repository="sll8-as"/>\n'
-
-            '<binary name="NetworkManager" epoch="1" version="1.30.0" release="7.el8" binaryarch="x86_64" '
+            '<binary name="NetworkManager" epoch="1" version="1.30.0" '
+            'release="7.el8" binaryarch="x86_64" '
             'license="GPLv2+ and LGPLv2+" project="SUSE:RES-8:EPAM" '
             'repository="sll8-as" arch="x86_64"/>\n'
             '<binary name="acl" version="2.4.0" release="1.el8_10" '
