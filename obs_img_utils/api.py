@@ -444,6 +444,11 @@ class OBSImageUtil(object):
             )
 
             for package in metadata['report']['binary']:
+
+                package_arch = package.get('@arch', '')
+                if not package_arch and '@binaryarch' in package:
+                    package_arch = package['@binaryarch']
+
                 package_digest = hashlib.md5()
                 package_digest.update(str(package).encode())
 
@@ -451,7 +456,7 @@ class OBSImageUtil(object):
                     name=package['@name'],
                     version=package['@version'],
                     release=package['@release'],
-                    arch=package['@arch'],
+                    arch=package_arch,
                     license=package.get('@license', 'unknown'),
                     checksum=package_digest.hexdigest()
                 )
