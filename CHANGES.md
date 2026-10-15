@@ -1,3 +1,8 @@
+v1.13.0 (2026-10-15)
+===================
+
+- Makes arch field in .report default to binaryarch if not present- #63
+
 v1.12.0 (2026-03-17)
 ===================
 
