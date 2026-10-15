@@ -150,3 +150,26 @@ class TestAPI:
             with pytest.raises(DownloadMetadataFileExceptionOBS) as error:
                 self.downloader.download_metadata_file()
             assert 'No image metadata found matching' in str(error.value)
+
+    @patch.object(OBSImageUtil, 'download_metadata_file')
+    def test_parse_report_file_binaryarch(self, mock_download, tmp_path):
+        report_file = tmp_path / 'report'
+        report_file.write_text(
+            '<report buildtime="test_buildtime">\n'
+            '<binary name="NetworkManager-libnm" epoch="1" version="1.30.0" '
+            'release="7.el8" binaryarch="x86_64" license="LGPLv2+" '
+            'project="SUSE:RES-8:EPAM" repository="sll8-as"/>\n'
+            '<binary name="NetworkManager" epoch="1" version="1.30.0" '
+            'release="7.el8" binaryarch="x86_64" '
+            'license="GPLv2+ and LGPLv2+" project="SUSE:RES-8:EPAM" '
+            'repository="sll8-as" arch="x86_64"/>\n'
+            '<binary name="acl" version="2.4.0" release="1.el8_10" '
+            'binaryarch="x86_64" license="GPLv2+" project="SUSE:RES-8:EPAM"'
+            ' repository="sll8-base" arch="x86_64"/>\n'
+            '</report>'
+        )
+        self.downloader.image_metadata_file = str(report_file)
+        packages = self.downloader.parse_report_file()
+        mock_download.assert_called_once_with('report')
+        assert 'NetworkManager-libnm' in packages
+        assert packages['NetworkManager-libnm'].arch == 'x86_64'
